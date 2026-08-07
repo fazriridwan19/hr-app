@@ -2,14 +2,14 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { authApi } from '@/api/auth.api';
 import { useAuth } from '@/hooks/useAuth';
-import type { LoginRequest } from '@/types/auth.types';
+import type { LoginRequest, LoginResponse } from '@/types/auth.types';
 import { getErrorMessage } from '@/lib/utils';
 
 export const useLogin = () => {
   const { setAuth } = useAuth();
   const router = useRouter();
 
-  return useMutation({
+  return useMutation<LoginResponse, unknown, LoginRequest>({
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (res) => {
       setAuth(res.user, res.accessToken);

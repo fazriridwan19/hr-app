@@ -15,14 +15,17 @@ type BadgeVariant =
   | "draft";
 
 const variantClasses: Record<BadgeVariant, string> = {
-  draft: "bg-slate-100   text-black dark:bg-slate-700/40   dark:text-white",
+  draft: "bg-slate-100 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300",
   processing:
-    "bg-primary-100 text-black dark:bg-primary-900/30 dark:text-white",
-  info: "bg-info-50     text-black dark:bg-sky-900/30     dark:text-white",
-  success: "bg-success-100 text-black dark:bg-green-900/30  dark:text-white",
-  warning: "bg-warning-100 text-black dark:bg-amber-900/30  dark:text-white",
-  danger: "bg-danger-100  text-black dark:bg-red-900/30    dark:text-white",
-  default: "bg-slate-100   text-black dark:bg-slate-700/40   dark:text-white",
+    "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300",
+  info: "bg-info-50 text-info-700 dark:bg-sky-900/30 dark:text-sky-400",
+  success:
+    "bg-success-100 text-success-700 dark:bg-green-900/30 dark:text-green-400",
+  warning:
+    "bg-warning-100 text-warning-700 dark:bg-amber-900/30 dark:text-amber-400",
+  danger: "bg-danger-100 text-danger-700 dark:bg-red-900/30 dark:text-red-400",
+  default:
+    "bg-slate-100 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300",
 };
 
 interface BadgeProps {

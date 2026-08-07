@@ -1,15 +1,15 @@
 import {
-  AttendanceType,
-  AttendanceStatus,
   Attendance,
+  AttendanceStatus,
+  AttendanceType,
 } from "@modules/attendance/domain/entities/attendance.entity";
 import {
-  Entity,
   Column,
-  PrimaryGeneratedColumn,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
   Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 
 @Entity("attendances")
@@ -46,6 +46,9 @@ export class AttendanceEntity {
   })
   status: AttendanceStatus;
 
+  @Column({ type: "text", nullable: true })
+  notes: string;
+
   @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 
@@ -63,6 +66,7 @@ export class AttendanceEntity {
       clockDate: this.clockDate as unknown as Date,
       clockTime: this.clockTime,
       status: this.status,
+      notes: this.notes,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     });
@@ -70,21 +74,17 @@ export class AttendanceEntity {
 
   static fromDomain(attendance: Partial<Attendance>): AttendanceEntity {
     const entity = new AttendanceEntity();
-    if (attendance.id !== undefined) entity.id = attendance.id;
-    if (attendance.employeeId !== undefined)
-      entity.employeeId = attendance.employeeId;
-    if (attendance.employeeCode !== undefined)
-      entity.employeeCode = attendance.employeeCode;
-    if (attendance.employeeName !== undefined)
-      entity.employeeName = attendance.employeeName;
-    if (attendance.type !== undefined) entity.type = attendance.type;
-    if (attendance.photoUrl !== undefined)
-      entity.photoUrl = attendance.photoUrl;
-    if (attendance.clockDate !== undefined)
+    if (attendance.id) entity.id = attendance.id;
+    if (attendance.employeeId) entity.employeeId = attendance.employeeId;
+    if (attendance.employeeCode) entity.employeeCode = attendance.employeeCode;
+    if (attendance.employeeName) entity.employeeName = attendance.employeeName;
+    if (attendance.type) entity.type = attendance.type;
+    if (attendance.photoUrl) entity.photoUrl = attendance.photoUrl;
+    if (attendance.clockDate)
       entity.clockDate = attendance.clockDate as unknown as string;
-    if (attendance.clockTime !== undefined)
-      entity.clockTime = attendance.clockTime;
-    if (attendance.status !== undefined) entity.status = attendance.status;
+    if (attendance.clockTime) entity.clockTime = attendance.clockTime;
+    if (attendance.status) entity.status = attendance.status;
+    if (attendance.notes) entity.notes = attendance.notes;
     return entity;
   }
 }

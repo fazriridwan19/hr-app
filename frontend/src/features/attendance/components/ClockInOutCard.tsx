@@ -26,6 +26,7 @@ export const ClockInOutCard: React.FC = () => {
 
   const [photo,      setPhoto]      = useState<File | null>(null);
   const [preview,    setPreview]    = useState<string | null>(null);
+  const [notes,      setNotes]      = useState<string>("");
   const [actionType, setActionType] = useState<'clock-in' | 'clock-out' | null>(null);
 
   const clockInMutation  = useClockIn();
@@ -53,7 +54,18 @@ export const ClockInOutCard: React.FC = () => {
   const handleAction = (type: 'clock-in' | 'clock-out') => {
     setActionType(type);
     const mut = type === 'clock-in' ? clockInMutation : clockOutMutation;
-    mut.mutate(photo ?? undefined, { onSettled: clearPhoto });
+    mut.mutate(
+      {
+        photo: photo ?? undefined,
+        notes: notes.trim() || undefined,
+      },
+      {
+        onSettled: () => {
+          clearPhoto();
+          setNotes("");
+        },
+      },
+    );
   };
 
   const isLoading = clockInMutation.isPending || clockOutMutation.isPending;
@@ -83,50 +95,69 @@ export const ClockInOutCard: React.FC = () => {
           <TimeStatusCard label="Clock Out" record={clockOutRec} type="out" />
         </div>
 
-        {/* Photo upload — only if not complete */}
+        {/* Photo upload + notes — only if not complete */}
         {!isComplete && (
-          <div>
-            <p className="mb-2 text-[13px] font-medium" style={{ color: 'var(--text-body)' }}>
-              Foto Bukti <span className="font-normal" style={{ color: 'var(--text-muted)' }}>(opsional)</span>
-            </p>
-            {preview ? (
-              <div className="relative inline-block">
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="h-24 w-40 rounded-md object-cover"
-                  style={{ border: '1px solid var(--border)' }}
-                />
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 text-[13px] font-medium" style={{ color: 'var(--text-body)' }}>
+                Foto Bukti <span className="font-normal" style={{ color: 'var(--text-muted)' }}>(opsional)</span>
+              </p>
+              {preview ? (
+                <div className="relative inline-block">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="h-24 w-40 rounded-md object-cover"
+                    style={{ border: '1px solid var(--border)' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={clearPhoto}
+                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm"
+                    style={{ border: '1px solid var(--border)' }}
+                    aria-label="Hapus foto"
+                  >
+                    <X className="h-3 w-3 text-slate-500" />
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={clearPhoto}
-                  className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm"
-                  style={{ border: '1px solid var(--border)' }}
-                  aria-label="Hapus foto"
+                  onClick={() => fileRef.current?.click()}
+                  className="flex items-center gap-2 rounded-md border border-dashed px-4 py-2.5 text-sm transition-colors hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                  style={{ borderColor: 'var(--border-muted)', color: 'var(--text-muted)' }}
                 >
-                  <X className="h-3 w-3 text-slate-500" />
+                  <Upload className="h-4 w-4" />
+                  Pilih atau ambil foto
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-2 rounded-md border border-dashed px-4 py-2.5 text-sm transition-colors hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
-                style={{ borderColor: 'var(--border-muted)', color: 'var(--text-muted)' }}
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png"
+                capture="environment"
+                onChange={handleFile}
+                className="hidden"
+                aria-label="Upload foto absensi"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="attendance-notes"
+                className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
               >
-                <Upload className="h-4 w-4" />
-                Pilih atau ambil foto
-              </button>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png"
-              capture="environment"
-              onChange={handleFile}
-              className="hidden"
-              aria-label="Upload foto absensi"
-            />
+                Catatan (opsional)
+              </label>
+              <textarea
+                id="attendance-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-colors duration-150 focus:border-primary-500 focus:ring-2 focus:ring-primary-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-primary-400 dark:focus:ring-primary-900/30"
+                placeholder="Misal: Terlambat karena macet, atau selesai meeting"
+              />
+            </div>
           </div>
         )}
 

@@ -55,13 +55,25 @@ const attachAuthToken = (
   return config;
 };
 
+const PUBLIC_AUTH_PATHS = [
+  '/auth/login',
+  '/auth/refresh',
+  '/auth/request-password-reset',
+  '/auth/reset-password',
+];
+
 const createResponseInterceptor = (instance: AxiosInstance) => {
   instance.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
       const originalRequest = error.config as RetryAxiosRequestConfig;
+      const requestUrl = originalRequest.url ?? '';
 
-      if (error.response?.status !== 401 || originalRequest._retry) {
+      if (
+        error.response?.status !== 401 ||
+        originalRequest._retry ||
+        PUBLIC_AUTH_PATHS.some((path) => requestUrl.includes(path))
+      ) {
         return Promise.reject(error);
       }
 

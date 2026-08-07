@@ -28,22 +28,56 @@ export function getGreeting(): string {
   return "Selamat malam";
 }
 
+const extractMessage = (data: unknown): string | null => {
+  if (typeof data === 'string') return data;
+  if (Array.isArray(data)) {
+    return data
+      .map((item) => extractMessage(item))
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (typeof data === 'object' && data !== null) {
+    const record = data as Record<string, unknown>;
+
+    if (typeof record.message === 'string') return record.message;
+    if (Array.isArray(record.message)) return extractMessage(record.message);
+    if (typeof record.error === 'string') return record.error;
+    if (Array.isArray(record.errors)) return extractMessage(record.errors);
+    if (typeof record.meta === 'object' && record.meta !== null) {
+      return extractMessage((record.meta as Record<string, unknown>).message);
+    }
+    if (typeof record.constraints === 'object' && record.constraints !== null) {
+      return extractMessage(Object.values(record.constraints));
+    }
+
+    return extractMessage(Object.values(record));
+  }
+  return null;
+};
+
 export function getErrorMessage(error: unknown): string {
-  if (error && typeof error === "object" && "response" in error) {
+  if (error && typeof error === 'object') {
     const axiosError = error as {
       response?: {
-        data?: {
-          meta?: { message?: string };
-          message?: string | string[];
-        };
+        data?: unknown;
+        statusText?: string;
       };
+      message?: string;
     };
+
     const data = axiosError.response?.data;
-    if (data?.meta?.message) return data.meta.message;
-    const msg = data?.message;
-    if (Array.isArray(msg)) return msg.join(", ");
-    if (typeof msg === "string") return msg;
+    const parsed = extractMessage(data);
+    if (parsed) return parsed;
+
+    if (typeof axiosError.message === 'string') {
+      return axiosError.message;
+    }
+
+    if (typeof axiosError.response?.statusText === 'string') {
+      return axiosError.response.statusText;
+    }
   }
+
   if (error instanceof Error) return error.message;
-  return "Terjadi kesalahan. Silakan coba lagi.";
+  return 'Terjadi kesalahan. Silakan coba lagi.';
 }

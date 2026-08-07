@@ -1,48 +1,26 @@
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  ConflictException,
-  Logger,
-  NotAcceptableException,
-} from "@nestjs/common";
-import * as bcrypt from "bcrypt";
-import {
   EMPLOYEE_REPOSITORY,
   IEmployeeRepository,
 } from "@modules/employee/domain/entities/employee.entity";
 import { CreateUserDto } from "@modules/user/application/dto/create-user.dto";
+import { UpdatePasswordDto } from "@modules/user/application/dto/update-password.dto";
 import { UpdateRoleDto } from "@modules/user/application/dto/update-role.dto";
 import { UpdateStatusDto } from "@modules/user/application/dto/update-status.dto";
+import { UserResponseDto } from "@modules/user/application/dto/user-response.dto";
 import {
-  UserRole,
-  User,
-  USER_REPOSITORY,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotAcceptableException,
+  NotFoundException,
+} from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import {
   IUserRepository,
+  USER_REPOSITORY,
+  UserRole
 } from "../entities/user.entity";
-import { UpdatePasswordDto } from "@modules/user/application/dto/update-password.dto";
-
-export class UserResponseDto {
-  id: number;
-  email: string;
-  role: UserRole;
-  employeeId: number | null;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-
-  static fromDomain(user: User): UserResponseDto {
-    const dto = new UserResponseDto();
-    dto.id = user.id;
-    dto.email = user.email;
-    dto.role = user.role;
-    dto.employeeId = user.employeeId;
-    dto.isActive = user.isActive;
-    dto.createdAt = user.createdAt;
-    dto.updatedAt = user.updatedAt;
-    return dto;
-  }
-}
 
 @Injectable()
 export class UserService {
@@ -126,18 +104,9 @@ export class UserService {
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
-    const { oldPassword, newPassword } = dto;
-    if (oldPassword === newPassword) {
-      throw new NotAcceptableException(
-        `New password cannot be same as old password`,
-      );
-    }
+    const { newPassword } = dto;
     if (!user.isActive) {
       throw new NotAcceptableException(`User is inactive`);
-    }
-    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
-    if (!isPasswordValid) {
-      throw new NotAcceptableException(`Old password is invalid`);
     }
     const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
     const updated = await this.userRepository.updatePassword(

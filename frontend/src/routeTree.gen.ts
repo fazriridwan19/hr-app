@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthAttendanceRouteImport } from './routes/_auth.attendance'
 import { Route as AdminAdminAttendanceRouteImport } from './routes/_admin.admin.attendance'
 import { Route as AdminAdminEmployeesRouteImport } from './routes/_admin.admin.employees'
@@ -30,9 +32,19 @@ const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthAttendanceRoute = AuthAttendanceRouteImport.update({
@@ -53,14 +65,18 @@ const AdminAdminEmployeesRoute = AdminAdminEmployeesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/attendance': typeof AuthAttendanceRoute
   '/admin/attendance': typeof AdminAdminAttendanceRoute
   '/admin/employees': typeof AdminAdminEmployeesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/attendance': typeof AuthAttendanceRoute
   '/admin/attendance': typeof AdminAdminAttendanceRoute
   '/admin/employees': typeof AdminAdminEmployeesRoute
@@ -70,7 +86,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_admin': typeof AdminRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_auth/attendance': typeof AuthAttendanceRoute
   '/_admin/admin/attendance': typeof AdminAdminAttendanceRoute
   '/_admin/admin/employees': typeof AdminAdminEmployeesRoute
@@ -78,15 +96,30 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/attendance' | '/admin/attendance' | '/admin/employees'
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/attendance'
+    | '/admin/attendance'
+    | '/admin/employees'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/attendance' | '/admin/attendance' | '/admin/employees'
+  to:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/attendance'
+    | '/admin/attendance'
+    | '/admin/employees'
   id:
     | '__root__'
     | '/'
     | '/_admin'
     | '/_auth'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/_auth/attendance'
     | '/_admin/admin/attendance'
     | '/_admin/admin/employees'
@@ -96,7 +129,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,11 +157,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/attendance': {
@@ -179,7 +228,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

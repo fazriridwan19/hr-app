@@ -19,6 +19,7 @@ export class Attendance {
   clockDate: Date;
   clockTime: string;
   status: AttendanceStatus;
+  notes: string | null;
   createdAt: Date;
   updatedAt: Date;
 

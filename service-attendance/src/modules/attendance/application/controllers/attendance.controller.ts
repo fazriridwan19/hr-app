@@ -4,9 +4,11 @@ import {
   AttendanceResponseDto,
   PaginatedAttendanceResponseDto,
 } from "@modules/attendance/application/dto/attendance-response.dto";
+import { AttendanceRequestDto } from "@modules/attendance/application/dto/attendance-request.dto";
 import { JwtPayload } from "@modules/attendance/domain/entities/jwt-payload.interface";
 import { AttendanceService } from "@modules/attendance/domain/services/attendance.service";
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -73,6 +75,10 @@ export class AttendanceController {
           format: "binary",
           description: "Attendance photo (jpg/png, max 5MB)",
         },
+        notes: {
+          type: "string",
+          description: "Optional notes for the attendance record",
+        },
       },
     },
   })
@@ -80,13 +86,15 @@ export class AttendanceController {
   @ApiConflictResponse({ description: "Already clocked in today" })
   async clockIn(
     @CurrentUser() user: JwtPayload,
+    @Body() body: AttendanceRequestDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<AttendanceResponseDto> {
     return this.attendanceService.clockIn(
       user.employeeId!,
-      user.name, // employeeCode from JWT name field (fallback)
+      user.name,
       user.name,
       file,
+      body.notes,
     );
   }
 
@@ -104,6 +112,10 @@ export class AttendanceController {
           format: "binary",
           description: "Attendance photo (jpg/png, max 5MB)",
         },
+        notes: {
+          type: "string",
+          description: "Optional notes for the attendance record",
+        },
       },
     },
   })
@@ -112,6 +124,7 @@ export class AttendanceController {
   @ApiBadRequestResponse({ description: "Must clock in before clocking out" })
   async clockOut(
     @CurrentUser() user: JwtPayload,
+    @Body() body: AttendanceRequestDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<AttendanceResponseDto> {
     return this.attendanceService.clockOut(
@@ -119,6 +132,7 @@ export class AttendanceController {
       user.name,
       user.name,
       file,
+      body.notes,
     );
   }
 

@@ -54,16 +54,15 @@ export class AttendanceService {
     employeeCode: string,
     employeeName: string,
     file?: Express.Multer.File,
+    notes?: string,
   ): Promise<AttendanceResponseDto> {
     const today = this.getTodayString();
 
-    // Check idempotency via Redis cache first (fast path)
     const cached = await this.cacheService.getTodayStatus(employeeId);
     if (cached?.clockIn) {
       throw new ConflictException("You have already clocked in today");
     }
 
-    // Also verify from DB to be safe
     const existing =
       await this.attendanceRepository.findByEmployeeIdAndDateAndType(
         employeeId,
@@ -74,25 +73,23 @@ export class AttendanceService {
       throw new ConflictException("You have already clocked in today");
     }
 
-    // Save photo file (if provided)
     let filePath: string | null = null;
     if (file) {
       filePath = await this.storageService.saveFile(file, employeeId);
     }
 
-    // Insert record with PENDING status
     const attendance = await this.attendanceRepository.create({
       employeeId,
       employeeCode,
       employeeName,
       type: AttendanceType.CLOCK_IN,
       photoUrl: filePath,
+      notes: notes ?? null,
       clockDate: today as unknown as Date,
       clockTime: this.getCurrentTimeString(),
       status: AttendanceStatus.PENDING,
     });
 
-    // Update Redis cache
     await this.cacheService.setTodayStatus(employeeId, {
       clockIn: true,
       clockOut: cached?.clockOut ?? false,
@@ -100,7 +97,6 @@ export class AttendanceService {
       clockOutId: cached?.clockOutId,
     });
 
-    // Push async job
     await this.producer.addClockInJob({
       attendanceId: attendance.id,
       employeeId,
@@ -119,10 +115,9 @@ export class AttendanceService {
     employeeCode: string,
     employeeName: string,
     file?: Express.Multer.File,
+    notes?: string,
   ): Promise<AttendanceResponseDto> {
     const today = this.getTodayString();
-
-    // Check idempotency via Redis cache
     const cached = await this.cacheService.getTodayStatus(employeeId);
 
     if (cached?.clockOut) {
@@ -130,7 +125,6 @@ export class AttendanceService {
     }
 
     if (!cached?.clockIn) {
-      // Fallback: check DB
       const clockInRecord =
         await this.attendanceRepository.findByEmployeeIdAndDateAndType(
           employeeId,
@@ -142,7 +136,6 @@ export class AttendanceService {
       }
     }
 
-    // Check existing clock out in DB
     const existing =
       await this.attendanceRepository.findByEmployeeIdAndDateAndType(
         employeeId,
@@ -164,6 +157,7 @@ export class AttendanceService {
       employeeName,
       type: AttendanceType.CLOCK_OUT,
       photoUrl: filePath,
+      notes: notes ?? null,
       clockDate: today as unknown as Date,
       clockTime: this.getCurrentTimeString(),
       status: AttendanceStatus.PENDING,

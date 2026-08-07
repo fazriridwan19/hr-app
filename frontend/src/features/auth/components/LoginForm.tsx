@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
+import { useRouter } from '@tanstack/react-router';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useLogin } from '../hooks/useLogin';
@@ -17,13 +18,24 @@ type FormData = z.infer<typeof schema>;
 
 export const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const loginMutation = useLogin();
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data: FormData) => loginMutation.mutate(data);
+  const router = useRouter();
+  const onSubmit = (data: FormData) => {
+    setServerError(null);
+    loginMutation.mutate(data, {
+      onError: (error) => {
+        setServerError(getErrorMessage(error));
+      },
+    });
+  };
+
+  const errorMessage = serverError ?? (loginMutation.isError ? getErrorMessage(loginMutation.error) : null);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -60,7 +72,7 @@ export const LoginForm: React.FC = () => {
         {...register('password')}
       />
 
-      {loginMutation.isError && (
+      {errorMessage && (
         <div
           className="flex items-start gap-3 rounded-md px-4 py-3 text-sm"
           style={{
@@ -71,7 +83,7 @@ export const LoginForm: React.FC = () => {
           role="alert"
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#DC2626' }} />
-          <span>{getErrorMessage(loginMutation.error)}</span>
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -84,6 +96,16 @@ export const LoginForm: React.FC = () => {
       >
         {loginMutation.isPending ? 'Sedang masuk…' : 'Masuk'}
       </Button>
+
+      <div className="text-right">
+        <button
+          type="button"
+          className="text-sm font-medium text-primary-600 hover:text-primary-700"
+          onClick={() => void router.navigate({ to: '/forgot-password' })}
+        >
+          Lupa kata sandi?
+        </button>
+      </div>
     </form>
   );
 };

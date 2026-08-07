@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   Logger,
   Inject,
+  NotFoundException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
@@ -23,10 +24,14 @@ import {
   USER_REPOSITORY,
   IUserRepository,
 } from "@modules/user/domain/entities/user.entity";
+import { EmailProducer } from "@modules/auth/infrastructure/queue/producers/email.producer";
+import { UpdatePasswordDto } from "@modules/user/application/dto/update-password.dto";
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly tokenTTL = 60 * 60;
+  private readonly SALT_ROUNDS = 12;
 
   constructor(
     @Inject(USER_REPOSITORY)
@@ -36,6 +41,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisTokenService: RedisTokenService,
+    private readonly emailProducer: EmailProducer,
   ) {}
 
   async login(
@@ -193,5 +199,64 @@ export class AuthService {
   async logoutAll(userId: number): Promise<void> {
     await this.redisTokenService.deleteAllRefreshTokens(userId);
     this.logger.log(`All sessions revoked for user ${userId}`);
+  }
+
+  async requestReset(email: string): Promise<void> {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user?.isActive) {
+      this.logger.warn(
+        `Password reset requested for missing or inactive email: ${email}`,
+      );
+      return;
+    }
+
+    const token = this.jwtService.sign(
+      { userId: user.id, email: user.email, purpose: "password-reset" },
+      {
+        secret: this.configService.get<string>("JWT_PASSWORD_RESET_SECRET"),
+        expiresIn: `${this.tokenTTL}s`,
+      },
+    );
+
+    const frontendUrl = this.configService.get<string>(
+      "APP_FRONTEND_URL",
+      "http://localhost:5173",
+    );
+    const resetPath = `${frontendUrl}/reset-password?token=${encodeURIComponent(token)}`;
+
+    await this.emailProducer.addPasswordResetJob({
+      email: user.email,
+      resetUrl: resetPath,
+    });
+    this.logger.log(`Password reset requested for user ${user.email}`);
+  }
+
+  async resetPassword(token: string, dto: UpdatePasswordDto): Promise<void> {
+    let payload: { userId: number; email: string; purpose: string };
+    try {
+      payload = this.jwtService.verify<{
+        userId: number;
+        email: string;
+        purpose: string;
+      }>(token, {
+        secret: this.configService.get<string>("JWT_PASSWORD_RESET_SECRET"),
+      });
+    } catch {
+      throw new NotFoundException("Invalid or expired password reset token");
+    }
+
+    if (payload.purpose !== "password-reset") {
+      throw new NotFoundException("Invalid password reset token");
+    }
+
+    const user = await this.userRepository.findById(payload.userId);
+    if (!user?.isActive) {
+      throw new NotFoundException("User not found or inactive");
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, this.SALT_ROUNDS);
+    await this.userRepository.updatePassword(user.id, hashedPassword);
+
+    this.logger.log(`Password reset completed for user ${user.email}`);
   }
 }

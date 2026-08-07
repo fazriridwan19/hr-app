@@ -3,7 +3,7 @@ import {
   AttendanceStatus,
   AttendanceType,
 } from "@modules/attendance/domain/entities/attendance.entity";
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class AttendanceResponseDto {
   @ApiProperty({ example: 1 })
@@ -36,6 +36,13 @@ export class AttendanceResponseDto {
   @ApiProperty({ enum: AttendanceStatus })
   status: AttendanceStatus;
 
+  @ApiPropertyOptional({
+    type: String,
+    description: "Optional notes submitted with the attendance record",
+    nullable: true,
+  })
+  notes: string | null;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -50,6 +57,7 @@ export class AttendanceResponseDto {
     dto.employeeName = attendance.employeeName;
     dto.type = attendance.type;
     dto.photoUrl = attendance.photoUrl;
+    dto.notes = attendance.notes ?? null;
     dto.clockDate =
       attendance.clockDate instanceof Date
         ? attendance.clockDate.toISOString().slice(0, 10)

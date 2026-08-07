@@ -11,6 +11,7 @@ export interface Attendance {
   clockDate: string; // YYYY-MM-DD
   clockTime: string; // HH:MM:SS
   status: AttendanceStatus;
+  notes: string | null;
   createdAt: string;
 }
 

@@ -18,9 +18,10 @@ interface BackendPaginatedResponse<T> {
 }
 
 export const attendanceApiService = {
-  clockIn: async (photo?: File): Promise<Attendance> => {
+  clockIn: async (photo?: File, notes?: string): Promise<Attendance> => {
     const formData = new FormData();
     if (photo) formData.append('photo', photo);
+    if (notes) formData.append('notes', notes);
     const res = await attendanceApi.post<BackendResponse<Attendance>>(
       '/attendance/clock-in',
       formData,
@@ -29,9 +30,10 @@ export const attendanceApiService = {
     return res.data.data;
   },
 
-  clockOut: async (photo?: File): Promise<Attendance> => {
+  clockOut: async (photo?: File, notes?: string): Promise<Attendance> => {
     const formData = new FormData();
     if (photo) formData.append('photo', photo);
+    if (notes) formData.append('notes', notes);
     const res = await attendanceApi.post<BackendResponse<Attendance>>(
       '/attendance/clock-out',
       formData,

@@ -24,3 +24,15 @@ export interface LoginResponse {
   user: User;
   accessToken: string;
 }
+
+export interface RequestPasswordResetRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  newPassword: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
