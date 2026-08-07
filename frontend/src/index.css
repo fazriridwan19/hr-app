@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* ── Light: Slate-based (sesuai requirement-ui.md) ── */
+  :root {
+    --bg-app:       #F8FAFC; /* slate-50 */
+    --bg-surface:   #FFFFFF;
+    --bg-secondary: #F1F5F9; /* slate-100 */
+    --border:       #E2E8F0; /* slate-200 */
+    --border-muted: #CBD5E1; /* slate-300 */
+
+    --text-primary:   #0F172A; /* slate-900 */
+    --text-heading:   #1E293B; /* slate-800 */
+    --text-body:      #334155; /* slate-700 */
+    --text-secondary: #475569; /* slate-600 */
+    --text-muted:     #64748B; /* slate-500 */
+    --text-placeholder: #94A3B8; /* slate-400 */
+
+    --primary:       #4F46E5;
+    --primary-hover: #4338CA;
+    --primary-light: #EEF2FF;
+  }
+
+  /* ── Dark mode ─────────────────────────────────────── */
+  .dark {
+    --bg-app:       #0F172A;
+    --bg-surface:   #1E293B;
+    --bg-secondary: #334155;
+    --border:       #334155;
+    --border-muted: #475569;
+
+    --text-primary:   #F1F5F9;
+    --text-heading:   #E2E8F0;
+    --text-body:      #CBD5E1;
+    --text-secondary: #94A3B8;
+    --text-muted:     #64748B;
+    --text-placeholder: #475569;
+
+    --primary:       #6366F1;
+    --primary-hover: #4F46E5;
+    --primary-light: rgba(99, 102, 241, 0.12);
+  }
+
+  html {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  body { margin: 0; min-height: 100vh; }
+
+  /* Typography defaults */
+  h1 { font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary); letter-spacing: -0.02em; }
+  h2 { font-size: 20px; font-weight: 600; line-height: 28px; color: var(--text-heading); letter-spacing: -0.01em; }
+  h3 { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-heading); }
+  h4, h5, h6 { font-size: 14px; font-weight: 600; color: var(--text-body); }
+  p  { font-size: 14px; line-height: 20px; color: var(--text-body); margin: 0; }
+
+  input, textarea, select {
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+  }
+  ::placeholder { color: var(--text-placeholder); opacity: 1; }
+
+  /* Focus ring default */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-muted); }
+}
+
+@layer utilities {
+  /* Semantic bg */
+  .bg-app     { background-color: var(--bg-app);     }
+  .bg-surface { background-color: var(--bg-surface); }
+  .bg-secondary { background-color: var(--bg-secondary); }
+
+  /* Semantic text */
+  .text-primary     { color: var(--text-primary);   }
+  .text-heading     { color: var(--text-heading);   }
+  .text-body        { color: var(--text-body);      }
+  .text-secondary   { color: var(--text-secondary); }
+  .text-muted       { color: var(--text-muted);     }
+
+  /* Tabular numbers untuk angka/waktu */
+  .tabular { font-variant-numeric: tabular-nums; }
+}

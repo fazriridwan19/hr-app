@@ -1,0 +1,176 @@
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────
+  # MySQL — satu instance, dua database
+  # ─────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: hr-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: hruser
+      MYSQL_PASSWORD: hrpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-psecret",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hr-network
+
+  # ─────────────────────────────────────────
+  # Redis
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hr-redis
+    restart: unless-stopped
+    command: redis-server --requirepass redispassword
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redispassword", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hr-network
+
+  # ─────────────────────────────────────────
+  # service-employee (port 3000)
+  # ─────────────────────────────────────────
+  service-employee:
+    build:
+      context: ./service-employee
+      dockerfile: Dockerfile
+    container_name: hr-service-employee
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      APP_PORT: 3000
+      APP_ENV: production
+      APP_NAME: service-employee
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      DB_DATABASE: db_employee
+      DB_SYNCHRONIZE: "false"
+      DB_LOGGING: "false"
+      JWT_SECRET: change-this-jwt-secret-in-production
+      JWT_ACCESS_EXPIRATION: 15m
+      JWT_REFRESH_SECRET: change-this-refresh-secret-in-production
+      JWT_REFRESH_EXPIRATION: 7d
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redispassword
+      REDIS_DB: 0
+      REDIS_KEY_PREFIX: "service-employee:"
+      BULLMQ_REDIS_HOST: redis
+      BULLMQ_REDIS_PORT: 6379
+      BULLMQ_REDIS_PASSWORD: redispassword
+      CORS_ORIGIN: "http://localhost:5173"
+      COOKIE_SECRET: change-this-cookie-secret-in-production
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hr-network
+    volumes:
+      - employee_logs:/app/logs
+
+  # ─────────────────────────────────────────
+  # service-attendance (port 3001)
+  # ─────────────────────────────────────────
+  service-attendance:
+    build:
+      context: ./service-attendance
+      dockerfile: Dockerfile
+    container_name: hr-service-attendance
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      APP_PORT: 3001
+      APP_ENV: production
+      APP_NAME: service-attendance
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: hruser
+      DB_PASSWORD: hrpassword
+      DB_DATABASE: db_attendance
+      DB_SYNCHRONIZE: "false"
+      DB_LOGGING: "false"
+      JWT_SECRET: change-this-jwt-secret-in-production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redispassword
+      REDIS_DB: 0
+      REDIS_KEY_PREFIX: "service-attendance:"
+      BULLMQ_REDIS_HOST: redis
+      BULLMQ_REDIS_PORT: 6379
+      BULLMQ_REDIS_PASSWORD: redispassword
+      CORS_ORIGIN: "http://localhost:5173"
+      COOKIE_SECRET: change-this-cookie-secret-in-production
+      UPLOAD_DIR: uploads/attendance
+      MAX_FILE_SIZE: 5242880
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hr-network
+    volumes:
+      - attendance_uploads:/app/uploads
+      - attendance_logs:/app/logs
+
+  # ─────────────────────────────────────────
+  # Frontend React (port 5173 dev / 80 prod)
+  # ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hr-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - service-employee
+      - service-attendance
+    networks:
+      - hr-network
+
+volumes:
+  mysql_data:
+  redis_data:
+  employee_logs:
+  attendance_uploads:
+  attendance_logs:
+
+networks:
+  hr-network:
+    driver: bridge
