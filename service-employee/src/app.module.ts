@@ -7,7 +7,6 @@ import { DatabaseModule } from "@modules/shared/database.module";
 import { LoggingModule } from "@modules/shared/logging.module";
 import { QueueModule } from "@modules/shared/queue.module";
 import { RedisModule } from "@modules/shared/redis.module";
-import { UserModule } from "@modules/user/user.module";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 
@@ -35,7 +34,6 @@ import { ConfigModule } from "@nestjs/config";
     // Feature modules
     AuthModule,
     EmployeeModule,
-    UserModule,
     HealthModule,
   ],
 })

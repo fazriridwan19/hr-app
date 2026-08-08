@@ -13,7 +13,6 @@ import {
   IAttendanceRepository,
 } from "@modules/attendance/domain/entities/attendance.entity";
 import { AttendanceCacheService } from "@modules/attendance/infrastructure/cache/attendance-cache.service";
-import { AttendanceProducer } from "@modules/attendance/infrastructure/queue/producers/attendance.producer";
 import { FileStorageService } from "@modules/attendance/infrastructure/storage/file-storage.service";
 import {
   BadRequestException,
@@ -34,7 +33,6 @@ export class AttendanceService {
     private readonly attendanceRepository: IAttendanceRepository,
     private readonly cacheService: AttendanceCacheService,
     private readonly storageService: FileStorageService,
-    private readonly producer: AttendanceProducer,
   ) {}
 
   private getTodayString(): string {
@@ -87,7 +85,7 @@ export class AttendanceService {
       notes: notes ?? null,
       clockDate: today as unknown as Date,
       clockTime: this.getCurrentTimeString(),
-      status: AttendanceStatus.PENDING,
+      status: AttendanceStatus.COMPLETED,
     });
 
     await this.cacheService.setTodayStatus(employeeId, {
@@ -95,13 +93,6 @@ export class AttendanceService {
       clockOut: cached?.clockOut ?? false,
       clockInId: attendance.id,
       clockOutId: cached?.clockOutId,
-    });
-
-    await this.producer.addClockInJob({
-      attendanceId: attendance.id,
-      employeeId,
-      type: AttendanceType.CLOCK_IN,
-      filePath,
     });
 
     this.logger.log(
@@ -160,7 +151,7 @@ export class AttendanceService {
       notes: notes ?? null,
       clockDate: today as unknown as Date,
       clockTime: this.getCurrentTimeString(),
-      status: AttendanceStatus.PENDING,
+      status: AttendanceStatus.COMPLETED,
     });
 
     await this.cacheService.setTodayStatus(employeeId, {
@@ -168,13 +159,6 @@ export class AttendanceService {
       clockOut: true,
       clockInId: cached?.clockInId,
       clockOutId: attendance.id,
-    });
-
-    await this.producer.addClockOutJob({
-      attendanceId: attendance.id,
-      employeeId,
-      type: AttendanceType.CLOCK_OUT,
-      filePath,
     });
 
     this.logger.log(

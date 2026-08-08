@@ -1,12 +1,12 @@
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { In, Repository } from "typeorm";
+import { UserEntity } from "../entities/user.entity";
 import {
   IUserRepository,
   User,
   UserRole,
-} from "@modules/user/domain/entities/user.entity";
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { UserEntity } from "../entities/user.entity";
+} from "@modules/employee/domain/entities/user.entity";
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -30,10 +30,24 @@ export class UserRepository implements IUserRepository {
     return entity ? entity.toDomain() : null;
   }
 
+  async findByEmployeeIds(employeeIds: number[]): Promise<User[]> {
+    const entities = await this.repo.find({
+      select: ["id", "employeeId"],
+      where: { employeeId: In(employeeIds) },
+    });
+    return entities.map((e) => e.toDomain());
+  }
+
   async create(user: Partial<User>): Promise<User> {
     const entity = UserEntity.fromDomain(user);
     const saved = await this.repo.save(entity);
     return saved.toDomain();
+  }
+
+  async update(id: number, user: Partial<User>): Promise<User> {
+    await this.repo.update(id, user);
+    const updated = await this.repo.findOne({ where: { id } });
+    return updated!.toDomain();
   }
 
   async updateRole(id: number, role: UserRole): Promise<User> {

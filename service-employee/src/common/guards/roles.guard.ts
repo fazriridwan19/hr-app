@@ -1,13 +1,13 @@
+import { UserRole } from "@modules/employee/domain/entities/user.entity";
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-import { UserRole } from '../../modules/user/domain/entities/user.entity';
-import { JwtPayload } from '../../modules/auth/domain/entities/token.entity';
+  Injectable,
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { JwtPayload } from "../../modules/auth/domain/entities/token.entity";
+import { ROLES_KEY } from "../decorators/roles.decorator";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -27,13 +27,13 @@ export class RolesGuard implements CanActivate {
     const user = request.user as JwtPayload;
 
     if (!user) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
     const hasRole = requiredRoles.some((role) => user.role === role);
     if (!hasRole) {
       throw new ForbiddenException(
-        `Access denied. Required role: ${requiredRoles.join(' or ')}`,
+        `Access denied. Required role: ${requiredRoles.join(" or ")}`,
       );
     }
 

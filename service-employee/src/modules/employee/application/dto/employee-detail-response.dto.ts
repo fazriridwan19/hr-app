@@ -1,9 +1,13 @@
+import { Employee } from "@modules/employee/domain/entities/employee.entity";
+import { UserRole, User } from "@modules/employee/domain/entities/user.entity";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Employee } from "../../domain/entities/employee.entity";
 
-export class EmployeeResponseDto {
+export class EmployeeDetailResponseDto {
   @ApiProperty({ example: 1 })
   id: number;
+
+  @ApiProperty({ example: 1 })
+  userId: number;
 
   @ApiProperty({ example: "EMP-0001" })
   employeeCode: string;
@@ -20,8 +24,14 @@ export class EmployeeResponseDto {
   @ApiPropertyOptional({ example: "2024-01-15" })
   joinDate: Date | null;
 
+  @ApiProperty({ example: "johndoe@example.com" })
+  email: string;
+
+  @ApiProperty({ example: UserRole.USER })
+  role: UserRole;
+
   @ApiProperty({ example: true })
-  hasAccount: boolean;
+  isActive: boolean;
 
   @ApiProperty()
   createdAt: Date;
@@ -29,35 +39,20 @@ export class EmployeeResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromDomain(
-    employee: Employee,
-    hasAccount: boolean = false,
-  ): EmployeeResponseDto {
-    const dto = new EmployeeResponseDto();
+  static fromDomain(employee: Employee, user: User): EmployeeDetailResponseDto {
+    const dto = new EmployeeDetailResponseDto();
     dto.id = employee.id;
+    dto.userId = user.id;
     dto.employeeCode = employee.employeeCode;
     dto.name = employee.name;
     dto.position = employee.position;
     dto.phone = employee.phone;
     dto.joinDate = employee.joinDate;
-    dto.hasAccount = hasAccount;
+    dto.email = user.email;
+    dto.role = user.role;
+    dto.isActive = user.isActive;
     dto.createdAt = employee.createdAt;
     dto.updatedAt = employee.updatedAt;
     return dto;
   }
-}
-
-export class PaginatedEmployeeResponseDto {
-  @ApiProperty({ type: [EmployeeResponseDto] })
-  data: EmployeeResponseDto[];
-
-  @ApiProperty({
-    example: { totalData: 100, totalPage: 10, limit: 10, offset: 0 },
-  })
-  pagination: {
-    totalData: number;
-    totalPage: number;
-    limit: number;
-    offset: number;
-  };
 }

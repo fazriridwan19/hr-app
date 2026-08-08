@@ -1,4 +1,4 @@
-import { User, UserRole } from "@modules/user/domain/entities/user.entity";
+import { UserRole, User } from "@modules/employee/domain/entities/user.entity";
 
 export class UserResponseDto {
   id: number;

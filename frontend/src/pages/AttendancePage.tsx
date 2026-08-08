@@ -14,7 +14,7 @@ const AttendancePage: React.FC = () => {
   return (
     <div className="w-full">
       {/* Content */}
-      <div className="mx-auto mt-6 w-full max-w-4xl">
+      <div className="mx-auto w-full max-w-4xl">
         {/* Page header */}
         <h1
           className="text-2xl font-bold"

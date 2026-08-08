@@ -1,11 +1,13 @@
 import { employeeApi } from './axios';
 import type {
   Employee,
+  EmployeeDetail,
   UserAccount,
   CreateEmployeeDto,
   UpdateEmployeeDto,
   CreateUserAccountDto,
   GetEmployeesParams,
+  UserRole,
 } from '@/types/employee.types';
 import type { PaginatedMeta } from '@/types/attendance.types';
 
@@ -30,8 +32,8 @@ export const employeeApiService = {
     return { data: res.data.data, meta: res.data.meta };
   },
 
-  getEmployeeById: async (id: number): Promise<Employee> => {
-    const res = await employeeApi.get<BackendResponse<Employee>>(`/employees/${id}`);
+  getEmployeeById: async (id: number): Promise<EmployeeDetail> => {
+    const res = await employeeApi.get<BackendResponse<EmployeeDetail>>(`/employees/${id}`);
     return res.data.data;
   },
 
@@ -54,13 +56,18 @@ export const employeeApiService = {
     return res.data.data;
   },
 
-  updateUserRole: async (userId: number, role: 'ADMIN' | 'USER'): Promise<UserAccount> => {
+  updateUserRole: async (userId: number, role: UserRole): Promise<UserAccount> => {
     const res = await employeeApi.patch<BackendResponse<UserAccount>>(`/users/${userId}/role`, { role });
     return res.data.data;
   },
 
   updateUserStatus: async (userId: number, isActive: boolean): Promise<UserAccount> => {
     const res = await employeeApi.patch<BackendResponse<UserAccount>>(`/users/${userId}/status`, { isActive });
+    return res.data.data;
+  },
+
+  updateUserAccess: async (userId: number, payload: { role: UserRole; isActive: boolean }): Promise<UserAccount> => {
+    const res = await employeeApi.put<BackendResponse<UserAccount>>(`/users/${userId}/access`, payload);
     return res.data.data;
   },
 };

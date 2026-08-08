@@ -1,12 +1,13 @@
+import { CreateUserDto } from "@modules/employee/application/dto/create-user.dto";
+import { UpdatePasswordDto } from "@modules/employee/application/dto/update-password.dto";
+import { UpdateRoleDto } from "@modules/employee/application/dto/update-role.dto";
+import { UpdateStatusDto } from "@modules/employee/application/dto/update-status.dto";
+import { UpdateUserAccessDto } from "@modules/employee/application/dto/update-user-access.dto";
+import { UserResponseDto } from "@modules/employee/application/dto/user-response.dto";
 import {
   EMPLOYEE_REPOSITORY,
   IEmployeeRepository,
 } from "@modules/employee/domain/entities/employee.entity";
-import { CreateUserDto } from "@modules/user/application/dto/create-user.dto";
-import { UpdatePasswordDto } from "@modules/user/application/dto/update-password.dto";
-import { UpdateRoleDto } from "@modules/user/application/dto/update-role.dto";
-import { UpdateStatusDto } from "@modules/user/application/dto/update-status.dto";
-import { UserResponseDto } from "@modules/user/application/dto/user-response.dto";
 import {
   ConflictException,
   Inject,
@@ -19,7 +20,7 @@ import * as bcrypt from "bcrypt";
 import {
   IUserRepository,
   USER_REPOSITORY,
-  UserRole
+  UserRole,
 } from "../entities/user.entity";
 
 @Injectable()
@@ -69,6 +70,24 @@ export class UserService {
 
     this.logger.log(`Created user: ${user.email} with role: ${user.role}`);
     return UserResponseDto.fromDomain(user);
+  }
+
+  async updateAccess(
+    id: number,
+    dto: UpdateUserAccessDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    const updated = await this.userRepository.update(id, {
+      role: dto.role,
+      isActive: dto.isActive,
+    });
+    this.logger.log(
+      `Updated access for user ${id}: role=${dto.role}, isActive=${dto.isActive}`,
+    );
+    return UserResponseDto.fromDomain(updated);
   }
 
   async updateRole(id: number, dto: UpdateRoleDto): Promise<UserResponseDto> {

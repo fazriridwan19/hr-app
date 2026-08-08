@@ -20,12 +20,12 @@ import {
   EMPLOYEE_REPOSITORY,
   IEmployeeRepository,
 } from "@modules/employee/domain/entities/employee.entity";
+import { EmailProducer } from "@modules/auth/infrastructure/queue/producers/email.producer";
+import { UpdatePasswordDto } from "@modules/employee/application/dto/update-password.dto";
 import {
   USER_REPOSITORY,
   IUserRepository,
-} from "@modules/user/domain/entities/user.entity";
-import { EmailProducer } from "@modules/auth/infrastructure/queue/producers/email.producer";
-import { UpdatePasswordDto } from "@modules/user/application/dto/update-password.dto";
+} from "@modules/employee/domain/entities/user.entity";
 
 @Injectable()
 export class AuthService {

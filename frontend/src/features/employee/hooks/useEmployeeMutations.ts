@@ -39,14 +39,72 @@ export const useCreateUserAccount = () => {
   });
 };
 
-export const useUpdateUserRole = () =>
-  useMutation({
+export const useUpdateUserAccess = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, role, isActive }: { userId: number; role: 'ADMIN' | 'USER'; isActive: boolean }) =>
+      employeeApiService.updateUserAccess(userId, { role, isActive }),
+    onSuccess: (updatedUser, { userId }) => {
+      void qc.setQueryData(['employee-detail', userId], (prev: unknown) => {
+        if (!prev || typeof prev !== 'object') return prev;
+
+        return {
+          ...(prev as Record<string, unknown>),
+          role: updatedUser.role,
+          isActive: updatedUser.isActive,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      void qc.invalidateQueries({ queryKey: ['employees'] });
+      void qc.invalidateQueries({ queryKey: ['employee-detail', userId] });
+    },
+  });
+};
+
+export const useUpdateUserRole = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
     mutationFn: ({ userId, role }: { userId: number; role: 'ADMIN' | 'USER' }) =>
       employeeApiService.updateUserRole(userId, role),
-  });
+    onSuccess: (updatedUser, { userId }) => {
+      void qc.setQueryData(['employee-detail', userId], (prev: unknown) => {
+        if (!prev || typeof prev !== 'object') return prev;
 
-export const useUpdateUserStatus = () =>
-  useMutation({
+        return {
+          ...(prev as Record<string, unknown>),
+          role: updatedUser.role,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      void qc.invalidateQueries({ queryKey: ['employees'] });
+      void qc.invalidateQueries({ queryKey: ['employee-detail', userId] });
+    },
+  });
+};
+
+export const useUpdateUserStatus = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
     mutationFn: ({ userId, isActive }: { userId: number; isActive: boolean }) =>
       employeeApiService.updateUserStatus(userId, isActive),
+    onSuccess: (updatedUser, { userId }) => {
+      void qc.setQueryData(['employee-detail', userId], (prev: unknown) => {
+        if (!prev || typeof prev !== 'object') return prev;
+
+        return {
+          ...(prev as Record<string, unknown>),
+          isActive: updatedUser.isActive,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      void qc.invalidateQueries({ queryKey: ['employees'] });
+      void qc.invalidateQueries({ queryKey: ['employee-detail', userId] });
+    },
   });
+};

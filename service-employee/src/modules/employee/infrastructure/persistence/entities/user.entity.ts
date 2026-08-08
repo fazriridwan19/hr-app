@@ -1,5 +1,5 @@
+import { User, UserRole } from "@modules/employee/domain/entities/user.entity";
 import { EmployeeEntity } from "@modules/employee/infrastructure/persistence/entities/employee.entity";
-import { User, UserRole } from "@modules/user/domain/entities/user.entity";
 import {
   Column,
   CreateDateColumn,

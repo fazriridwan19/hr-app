@@ -1,14 +1,23 @@
-import { CreateEmployeeDto } from '@modules/employee/application/dto/create-employee.dto';
-import { EmployeeResponseDto, PaginatedEmployeeResponseDto } from '@modules/employee/application/dto/employee-response.dto';
-import { FindEmployeesQueryDto } from '@modules/employee/application/dto/find-employees-query.dto';
-import { UpdateEmployeeDto } from '@modules/employee/application/dto/update-employee.dto';
-import { Employee, EMPLOYEE_REPOSITORY, FindEmployeesOptions, IEmployeeRepository, PaginatedResult } from '@modules/employee/domain/entities/employee.entity';
+import { CreateEmployeeDto } from "@modules/employee/application/dto/create-employee.dto";
+import { EmployeeDetailResponseDto } from "@modules/employee/application/dto/employee-detail-response.dto";
 import {
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+  EmployeeResponseDto,
+  PaginatedEmployeeResponseDto,
+} from "@modules/employee/application/dto/employee-response.dto";
+import { FindEmployeesQueryDto } from "@modules/employee/application/dto/find-employees-query.dto";
+import { UpdateEmployeeDto } from "@modules/employee/application/dto/update-employee.dto";
+import {
+  Employee,
+  EMPLOYEE_REPOSITORY,
+  FindEmployeesOptions,
+  IEmployeeRepository,
+  PaginatedResult,
+} from "@modules/employee/domain/entities/employee.entity";
+import {
+  IUserRepository,
+  USER_REPOSITORY,
+} from "@modules/employee/domain/entities/user.entity";
+import { Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 
 @Injectable()
 export class EmployeeService {
@@ -17,11 +26,12 @@ export class EmployeeService {
   constructor(
     @Inject(EMPLOYEE_REPOSITORY)
     private readonly employeeRepository: IEmployeeRepository,
-  ) { }
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: IUserRepository,
+  ) {}
 
   private async generateEmployeeCode(): Promise<string> {
     const count = await this.employeeRepository.countAll();
-    // Keep trying until we find a unique code
     let sequence = count + 1;
     let code: string;
     let existing: Employee | null;
@@ -47,8 +57,21 @@ export class EmployeeService {
 
     const offset = (options.page - 1) * options.limit;
 
+    const employeeIds = result.data.map((employee) => employee.id);
+    const users = await this.userRepository.findByEmployeeIds(employeeIds);
+    const employeeWithUserMap = new Map<number, boolean>();
+    for (const employee of result.data) {
+      const hasUser = users.some((u) => u.employeeId === employee.id);
+      employeeWithUserMap.set(employee.id, hasUser);
+    }
+
     return {
-      data: result.data.map((element) => EmployeeResponseDto.fromDomain(element)),
+      data: result.data.map((element) =>
+        EmployeeResponseDto.fromDomain(
+          element,
+          employeeWithUserMap.get(element.id) ?? false,
+        ),
+      ),
       pagination: {
         totalData: result.total,
         totalPage: result.totalPages,
@@ -58,12 +81,18 @@ export class EmployeeService {
     };
   }
 
-  async findById(id: number): Promise<EmployeeResponseDto> {
+  async findById(id: number): Promise<EmployeeDetailResponseDto> {
     const employee = await this.employeeRepository.findById(id);
     if (!employee) {
       throw new NotFoundException(`Employee with id ${id} not found`);
     }
-    return EmployeeResponseDto.fromDomain(employee);
+    const user = await this.userRepository.findByEmployeeId(id);
+    if (!user) {
+      throw new NotFoundException(
+        `User account for employee ${employee.name} not found`,
+      );
+    }
+    return EmployeeDetailResponseDto.fromDomain(employee, user);
   }
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeResponseDto> {
@@ -77,11 +106,16 @@ export class EmployeeService {
       joinDate: dto.joinDate ? new Date(dto.joinDate) : null,
     });
 
-    this.logger.log(`Created employee: ${employee.employeeCode} - ${employee.name}`);
+    this.logger.log(
+      `Created employee: ${employee.employeeCode} - ${employee.name}`,
+    );
     return EmployeeResponseDto.fromDomain(employee);
   }
 
-  async update(id: number, dto: UpdateEmployeeDto): Promise<EmployeeResponseDto> {
+  async update(
+    id: number,
+    dto: UpdateEmployeeDto,
+  ): Promise<EmployeeResponseDto> {
     const existing = await this.employeeRepository.findById(id);
     if (!existing) {
       throw new NotFoundException(`Employee with id ${id} not found`);

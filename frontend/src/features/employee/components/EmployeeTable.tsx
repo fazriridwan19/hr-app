@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pencil, Trash2, UserPlus } from "lucide-react";
+import { Eye, Pencil, Trash2, UserPlus } from "lucide-react";
 import { Table, type Column } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { useDeleteEmployee } from "../hooks/useEmployeeMutations";
 import { EmployeeModal } from "./EmployeeModal";
 import { CreateUserModal } from "./CreateUserModal";
+import { EmployeeDetailModal } from "./EmployeeDetailModal";
 import { formatDate } from "@/lib/utils";
 import type { Employee } from "@/types/employee.types";
 import type { PaginatedMeta } from "@/types/attendance.types";
@@ -27,6 +28,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
   onPageChange,
 }) => {
   const deleteMutation = useDeleteEmployee();
+  const [detailTargetId, setDetailTargetId] = useState<number | null>(null);
   const [editTarget, setEditTarget] = useState<Employee | null>(null);
   const [userTarget, setUserTarget] = useState<Employee | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
@@ -79,16 +81,32 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
       width: "120px",
       render: (row) => (
         <div className="flex items-center justify-end gap-1">
-          <button
-            type="button"
-            onClick={() => setUserTarget(row)}
-            className="rounded p-2 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20"
-            style={{ color: "var(--text-muted)" }}
-            title="Buat akun login"
-            aria-label={`Buat akun untuk ${row.name}`}
-          >
-            <UserPlus className="h-4 w-4" />
-          </button>
+          {row.hasAccount ? (
+            <button
+              type="button"
+              onClick={() => setDetailTargetId(row.id)}
+              className="rounded p-2 transition-colors hover:bg-sky-50 dark:hover:bg-sky-900/20"
+              style={{ color: "var(--text-muted)" }}
+              title="Lihat detail"
+              aria-label={`Lihat detail ${row.name}`}
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+          ) : null}
+
+          {!row.hasAccount ? (
+            <button
+              type="button"
+              onClick={() => setUserTarget(row)}
+              className="rounded p-2 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20"
+              style={{ color: "var(--text-muted)" }}
+              title="Buat akun login"
+              aria-label={`Buat akun untuk ${row.name}`}
+            >
+              <UserPlus className="h-4 w-4" />
+            </button>
+          ) : null}
+
           <button
             type="button"
             onClick={() => setEditTarget(row)}
@@ -132,6 +150,12 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
           onPageChange={onPageChange}
         />
       )}
+
+      <EmployeeDetailModal
+        isOpen={detailTargetId !== null}
+        onClose={() => setDetailTargetId(null)}
+        employeeId={detailTargetId}
+      />
 
       <EmployeeModal
         isOpen={!!editTarget}

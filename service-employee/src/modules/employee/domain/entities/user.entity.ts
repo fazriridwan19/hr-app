@@ -28,7 +28,9 @@ export interface IUserRepository {
   findById(id: number): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   findByEmployeeId(employeeId: number): Promise<User | null>;
+  findByEmployeeIds(employeeIds: number[]): Promise<User[]>;
   create(user: Partial<User>): Promise<User>;
+  update(id: number, user: Partial<User>): Promise<User>;
   updateRole(id: number, role: UserRole): Promise<User>;
   updateStatus(id: number, isActive: boolean): Promise<User>;
   updatePassword(id: number, password: string): Promise<User>;

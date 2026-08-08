@@ -1,3 +1,5 @@
+export type UserRole = 'ADMIN' | 'USER';
+
 export interface Employee {
   id: number;
   employeeCode: string;
@@ -5,13 +7,22 @@ export interface Employee {
   position: string;
   phone: string | null;
   joinDate: string | null;
+  hasAccount: boolean;
   createdAt: string;
+}
+
+export interface EmployeeDetail extends Employee {
+  userId: number;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  updatedAt: string;
 }
 
 export interface UserAccount {
   id: number;
   email: string;
-  role: 'ADMIN' | 'USER';
+  role: UserRole;
   isActive: boolean;
   employeeId: number | null;
 }
@@ -34,7 +45,7 @@ export interface CreateUserAccountDto {
   email: string;
   password: string;
   employeeId: number;
-  role?: 'ADMIN' | 'USER';
+  role?: UserRole;
 }
 
 export interface GetEmployeesParams {
