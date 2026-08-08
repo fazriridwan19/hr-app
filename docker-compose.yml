@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   # ─────────────────────────────────────────
-  # MySQL — satu instance, dua database
+  # MySQL
   # ─────────────────────────────────────────
   mysql:
     image: mysql:8.0
@@ -70,13 +70,13 @@ services:
       APP_PORT: 3000
       APP_ENV: production
       APP_NAME: service-employee
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USERNAME: root
-      DB_PASSWORD: root
-      DB_DATABASE: db_employee
-      DB_SYNCHRONIZE: "false"
-      DB_LOGGING: "false"
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: db_employee
+      MYSQL_SYNCHRONIZE: "false"
+      MYSQL_LOGGING: "false"
       JWT_SECRET: change-this-jwt-secret-in-production
       JWT_ACCESS_EXPIRATION: 15m
       JWT_REFRESH_SECRET: change-this-refresh-secret-in-production
@@ -86,11 +86,14 @@ services:
       REDIS_PASSWORD: redispassword
       REDIS_DB: 0
       REDIS_KEY_PREFIX: "service-employee:"
-      BULLMQ_REDIS_HOST: redis
-      BULLMQ_REDIS_PORT: 6379
-      BULLMQ_REDIS_PASSWORD: redispassword
       CORS_ORIGIN: "http://localhost:5173"
       COOKIE_SECRET: change-this-cookie-secret-in-production
+      EMAIL_HOST: smtp.gmail.com
+      EMAIL_PORT: 587
+      EMAIL_SECURE: false
+      EMAIL_USER: example@gmail.com
+      EMAIL_PASS: examplepassword
+      EMAIL_FROM: no-reply@example.com
     depends_on:
       mysql:
         condition: service_healthy
@@ -116,22 +119,19 @@ services:
       APP_PORT: 3001
       APP_ENV: production
       APP_NAME: service-attendance
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USERNAME: hruser
-      DB_PASSWORD: hrpassword
-      DB_DATABASE: db_attendance
-      DB_SYNCHRONIZE: "false"
-      DB_LOGGING: "false"
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: db_attendance
+      MYSQL_SYNCHRONIZE: "false"
+      MYSQL_LOGGING: "false"
       JWT_SECRET: change-this-jwt-secret-in-production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: redispassword
       REDIS_DB: 0
       REDIS_KEY_PREFIX: "service-attendance:"
-      BULLMQ_REDIS_HOST: redis
-      BULLMQ_REDIS_PORT: 6379
-      BULLMQ_REDIS_PASSWORD: redispassword
       CORS_ORIGIN: "http://localhost:5173"
       COOKIE_SECRET: change-this-cookie-secret-in-production
       UPLOAD_DIR: uploads/attendance

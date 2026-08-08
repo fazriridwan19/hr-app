@@ -1,254 +1,195 @@
-# HR System — Aplikasi Absensi WFH & Monitoring Karyawan
+# HR System
 
-Sistem terdiri dari **2 backend service** (NestJS) + **1 frontend** (React), berkomunikasi via REST API dengan arsitektur microservices.
+HR System is an internal employee management and attendance platform composed of a React frontend, a NestJS employee service, and a NestJS attendance service.
 
-```
-frontend (React + Vite)   →   service-employee (port 3000)
-                          →   service-attendance (port 3001)
-                                    ↕
-                              MySQL + Redis + BullMQ
-```
+## Project summary
+- Frontend: React + Vite + TypeScript
+- Employee service: NestJS for authentication, employee management, user accounts, roles, and access control
+- Attendance service: NestJS for clock-in / clock-out, photo uploads, and attendance monitoring
+- Database: MySQL
+- Cache / queue: Redis + BullMQ
+- Deployment: Docker Compose
 
----
+## Full documentation
+The complete technical documentation for this project is available in the [docs](docs) folder, including:
 
-## Struktur Project
+- [docs/hr-system-overview.md](docs/hr-system-overview.md)
+- [docs/hr-system-architecture.md](docs/hr-system-architecture.md)
+- [docs/hr-system-api-reference.md](docs/hr-system-api-reference.md)
+- [docs/hr-system-security.md](docs/hr-system-security.md)
+- [docs/hr-system-error-handling.md](docs/hr-system-error-handling.md)
+- [docs/hr-system-business-logic.md](docs/hr-system-business-logic.md)
+- [docs/hr-system-deployment.md](docs/hr-system-deployment.md)
+- [docs/hr-system-testing.md](docs/hr-system-testing.md)
 
-```
+## Project structure
+```text
 hr-system/
-├── service-employee/    # Auth, employee CRUD, user management
-├── service-attendance/  # Clock in/out, foto, monitoring absensi
-├── frontend/            # React + Tailwind + TanStack Query
-├── docker/
-│   └── mysql/init.sql   # Inisialisasi database
+├── frontend/
+├── service-employee/
+├── service-attendance/
+├── docs/
 ├── docker-compose.yml
-└── README.md
+├── README.md
+└── .git/
 ```
 
----
+## Prerequisites
+Before running the project, make sure your machine has:
 
-## Prasyarat
+- Node.js 18+
+- npm
+- Docker Desktop / Docker Engine (optional for Docker Compose mode)
+- MySQL and Redis (if running manually without Docker)
 
-- **Node.js** >= 20
-- **MySQL** 8.0
-- **Redis** 7
-- (Opsional) **Docker** + **Docker Compose** untuk menjalankan seluruh stack
+## Running the project locally
 
----
+### Option 1: Run with Docker Compose (recommended)
+This is the fastest way to run the full stack together.
 
-## Cara Menjalankan (Lokal / Manual)
+1. Open a terminal in the project root.
+2. Make sure the environment files are available.
 
-### 1. Siapkan MySQL & Redis
+   For the employee service:
+   ```bash
+   cp service-employee/.env.example service-employee/.env
+   ```
 
-Jalankan MySQL dan Redis secara lokal, atau gunakan Docker:
+   For the attendance service:
+   ```bash
+   cp service-attendance/.env.example service-attendance/.env
+   ```
+
+   If the `.env` files are not created yet, Docker Compose can still run with environment variables already defined in `docker-compose.yml`, but backend apps normally still need local `.env` files for normal development and debugging.
+
+3. Start all services:
+   ```bash
+   docker compose up --build
+   ```
+
+4. Wait until all containers are ready.
+
+5. Access the application:
+   - Frontend: http://localhost
+   - Employee Service Swagger: http://localhost:3000/api/docs
+   - Attendance Service Swagger: http://localhost:3001/api/docs
+
+6. To stop the services:
+   ```bash
+   docker compose down
+   ```
+
+7. To remove all volumes and reset data:
+   ```bash
+   docker compose down -v
+   ```
+
+Notes:
+- The frontend is usually exposed on port 80 in Docker Compose.
+- The backend services run on ports 3000 and 3001.
+- For local development mode, the frontend is typically run with Vite on port 5173.
+
+### Option 2: Run manually without Docker
+This is useful when you want to debug the application directly in your local environment.
+
+#### 1) Prepare MySQL and Redis
+Use Docker only for the infrastructure dependencies:
 
 ```bash
-# MySQL
-docker run -d --name hr-mysql -p 3306:3306 \
-  -e MYSQL_ROOT_PASSWORD=secret \
-  mysql:8.0
-
-# Redis
-docker run -d --name hr-redis -p 6379:6379 redis:7-alpine
+docker compose up mysql redis -d
 ```
 
-Buat dua database di MySQL:
+If you already have MySQL and Redis running locally, you can skip this step.
 
-```sql
-CREATE DATABASE db_employee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE db_attendance CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
----
-
-### 2. service-employee
-
+#### 2) Set up the employee service
 ```bash
 cd service-employee
-
-# Install dependencies
-npm install
-
-# Salin dan sesuaikan .env
 cp .env.example .env
-# Edit .env: isi DB_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET, REDIS_PASSWORD
-
-# Jalankan migrasi database
-npm run migration:run
-
-# Jalankan dev server
+npm install
 npm run start:dev
 ```
 
-Swagger tersedia di: **http://localhost:3000/api/docs**
+Once the server is ready, the employee service will run at:
+- http://localhost:3000
+- Swagger: http://localhost:3000/api/docs
 
----
-
-### 3. service-attendance
-
+#### 3) Set up the attendance service
 ```bash
-cd service-attendance
-
-npm install
+cd ../service-attendance
 cp .env.example .env
-# Edit .env: pastikan JWT_SECRET SAMA dengan service-employee
-
-npm run migration:run
+npm install
 npm run start:dev
 ```
 
-Swagger tersedia di: **http://localhost:3001/api/docs**
+Once the server is ready, the attendance service will run at:
+- http://localhost:3001
+- Swagger: http://localhost:3001/api/docs
 
----
-
-### 4. Frontend
-
+#### 4) Set up the frontend
 ```bash
-cd frontend
-
+cd ../frontend
 npm install
-cp .env.example .env
-
 npm run dev
 ```
 
-Buka: **http://localhost:5173**
+Once the frontend is ready, open:
+- http://localhost:5173
 
----
+## Swagger URLs
+This project exposes Swagger UI for each backend service:
 
-## Cara Menjalankan dengan Docker Compose
+- Employee Service: http://localhost:3000/api/docs
+- Attendance Service: http://localhost:3001/api/docs
+
+If you run the frontend through Docker Compose, access the app via http://localhost, but the Swagger UI will still be available on each backend service port.
+
+## Common environment setup
+These are the default environment setups used by the project:
+
+### Employee Service
+- Database: MySQL (`db_employee`)
+- Port: 3000
+- JWT: enabled
+- Redis: enabled
+- Refresh token cookie: enabled
+
+### Attendance Service
+- Database: MySQL (`db_attendance`)
+- Port: 3001
+- JWT: enabled
+- Redis: enabled
+- Upload directory: `uploads/attendance`
+
+## Troubleshooting
+
+### Port already in use
+Check whether ports 3000, 3001, 5173, or 80 are already occupied by other services, then change the config or stop the conflicting process.
+
+### MySQL / Redis not ready
+Make sure the database and Redis are running before starting the backend services:
+```bash
+docker compose up mysql redis -d
+```
+
+### Login fails / token expired
+Ensure the `JWT_SECRET` and cookie secret values are consistent across the relevant services, and that the request is still using a valid access token.
+
+### Swagger is not visible
+Make sure `APP_ENV` is not set to `production`, because Swagger is enabled only in non-production environments.
+
+## Developer notes
+- The frontend communicates with the backend through the configured API base URLs and Axios interceptors.
+- More detailed technical documentation is available in [docs](docs).
+- For module-level implementation details, read the relevant markdown files in the docs folder.
+
+## Quick start
+If you want to try it as quickly as possible:
 
 ```bash
-# Clone / masuk ke root project
-cd hr-system
-
-# Build & jalankan semua service
-docker-compose up --build -d
-
-# Lihat log
-docker-compose logs -f
-
-# Jalankan migrasi (setelah container berjalan)
-docker exec hr-service-employee node dist/database/migrations/run
-# Atau gunakan migration:run via ts-node sebelum build production
-
-# Stop semua
-docker-compose down
+docker compose up --build
 ```
 
-Setelah docker-compose up:
-| Service | URL |
-|---|---|
-| Frontend | http://localhost |
-| service-employee API | http://localhost:3000/api/v1 |
-| service-attendance API | http://localhost:3001/api/v1 |
-| Swagger employee | http://localhost:3000/api/docs |
-| Swagger attendance | http://localhost:3001/api/docs |
-
-> **Catatan:** Saat production (docker-compose), jalankan migrasi secara manual sebelum memulai service, atau tambahkan migration run ke CMD di Dockerfile.
-
----
-
-## Environment Variables
-
-### service-employee `.env`
-
-| Variable | Default | Keterangan |
-|---|---|---|
-| `APP_PORT` | 3000 | Port HTTP |
-| `DB_HOST` | localhost | MySQL host |
-| `DB_DATABASE` | db_employee | Nama database |
-| `JWT_SECRET` | — | **Wajib diisi**, rahasia JWT |
-| `JWT_REFRESH_SECRET` | — | **Wajib diisi**, rahasia refresh token |
-| `REDIS_HOST` | localhost | Redis host |
-
-### service-attendance `.env`
-
-| Variable | Default | Keterangan |
-|---|---|---|
-| `APP_PORT` | 3001 | Port HTTP |
-| `DB_DATABASE` | db_attendance | Nama database |
-| `JWT_SECRET` | — | **Harus sama** dengan service-employee |
-| `UPLOAD_DIR` | uploads/attendance | Direktori upload foto |
-
----
-
-## API Endpoints Ringkasan
-
-### service-employee (`:3000/api/v1`)
-
-| Method | Endpoint | Akses | Deskripsi |
-|---|---|---|---|
-| POST | `/auth/login` | Public | Login |
-| POST | `/auth/refresh` | Public (cookie) | Refresh access token |
-| POST | `/auth/logout` | Auth | Logout |
-| GET | `/employees` | ADMIN | List karyawan |
-| POST | `/employees` | ADMIN | Tambah karyawan |
-| PUT | `/employees/:id` | ADMIN | Update karyawan |
-| DELETE | `/employees/:id` | ADMIN | Soft delete |
-| POST | `/users` | ADMIN | Buat akun login |
-| PATCH | `/users/:id/role` | ADMIN | Update role |
-| PATCH | `/users/:id/status` | ADMIN | Aktif/nonaktif |
-| GET | `/health` | Public | Health check |
-
-### service-attendance (`:3001/api/v1`)
-
-| Method | Endpoint | Akses | Deskripsi |
-|---|---|---|---|
-| POST | `/attendance/clock-in` | Auth | Clock in + foto |
-| POST | `/attendance/clock-out` | Auth | Clock out + foto |
-| GET | `/attendance/me` | Auth | Riwayat saya |
-| GET | `/attendance` | ADMIN | Semua absensi |
-| GET | `/attendance/:id` | Auth | Detail absensi |
-| GET | `/health` | Public | Health check |
-
----
-
-## Tech Stack
-
-| Layer | Teknologi |
-|---|---|
-| Backend | NestJS 10, TypeScript, TypeORM, MySQL |
-| Auth | JWT (access 15m) + Refresh Token (7d, HTTP-only cookie, Redis) |
-| Queue | BullMQ + Redis |
-| Frontend | React 18, Vite, Tailwind CSS, TanStack Query v5 |
-| State | Zustand + persist |
-| Forms | React Hook Form + Zod |
-| HTTP | Axios (dengan interceptor auto-refresh) |
-| Docs | Swagger/OpenAPI |
-| Logging | Winston |
-| Container | Docker + Docker Compose |
-
----
-
-## Menjalankan Tests
-
-```bash
-# service-employee
-cd service-employee
-npm test
-
-# service-attendance
-cd service-attendance
-npm test
-```
-
----
-
-## Akun Default
-
-Tidak ada seeding otomatis. Buat akun pertama langsung via MySQL:
-
-```sql
-USE db_employee;
-
--- 1. Buat data employee
-INSERT INTO employees (employee_code, name, position, created_at, updated_at)
-VALUES ('EMP-0001', 'Administrator', 'HRD Manager', NOW(), NOW());
-
--- 2. Buat user ADMIN (password: Admin@123)
--- Hash bcrypt dari 'Admin@123' — generate dengan: node -e "require('bcrypt').hash('Admin@123',10).then(console.log)"
-INSERT INTO users (email, password, role, employee_id, is_active, created_at, updated_at)
-VALUES ('admin@hrapp.com', '<bcrypt_hash>', 'ADMIN', 1, true, NOW(), NOW());
-```
-
-Atau gunakan endpoint `POST /api/v1/users` setelah login sebagai admin pertama.
+Then open:
+- Frontend: http://localhost
+- Employee Swagger: http://localhost:3000/api/docs
+- Attendance Swagger: http://localhost:3001/api/docs
