@@ -1,33 +1,33 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Res,
-  Req,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-  UnauthorizedException,
-  Version,
-  Query,
-} from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiCookieAuth,
-} from "@nestjs/swagger";
-import { Response, Request } from "express";
-import { AuthService } from "@modules/auth/domain/services/auth.service";
 import { CurrentUser } from "@common/decorators/current-user.decorator";
 import { Public } from "@common/decorators/public.decorator";
 import { JwtAuthGuard } from "@common/guards/jwt-auth.guard";
-import { JwtPayload } from "@modules/auth/domain/entities/token.entity";
-import { LoginResponseDto } from "../dto/login-response.dto";
-import { LoginDto } from "../dto/login.dto";
 import { RequestPasswordResetDto } from "@modules/auth/application/dto/request-password-reset.dto";
 import { ResetPasswordDto } from "@modules/auth/application/dto/reset-password.dto";
+import { JwtPayload } from "@modules/auth/domain/entities/token.entity";
+import { AuthService } from "@modules/auth/domain/services/auth.service";
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+  Version,
+} from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
+import { Request, Response } from "express";
+import { LoginResponseDto } from "../dto/login-response.dto";
+import { LoginDto } from "../dto/login.dto";
 
 @ApiTags("Authentication")
 @Controller("auth")
@@ -112,8 +112,6 @@ export class AuthController {
     @CurrentUser() user: JwtPayload,
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
-    await this.authService.logout(user.userId, user.jti);
-
     response.clearCookie(this.REFRESH_TOKEN_COOKIE, { path: "/api/v1/auth" });
 
     return { message: "Logged out successfully" };

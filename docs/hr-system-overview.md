@@ -15,7 +15,6 @@ The application supports employee CRUD, user account creation, role and account 
 - Frontend state/data layer: TanStack React Query, Zustand, React Router
 - Backend framework: NestJS (Node.js)
 - Database: MySQL
-- Cache/queue: Redis + BullMQ
 - Authentication: JWT access tokens + refresh token cookie
 - Validation: class-validator / class-transformer
 - Deployment: Docker + docker-compose
@@ -31,8 +30,6 @@ The application supports employee CRUD, user account creation, role and account 
 | @nestjs/common | 10.3.0 | NestJS core |
 | @nestjs/typeorm | 10.0.1 | ORM integration |
 | mysql2 | 3.9.2 | MySQL driver |
-| ioredis | 5.3.2 | Redis client |
-| bullmq | 5.4.2 | Background queue |
 | passport-jwt | 4.0.1 | JWT authentication |
 | class-validator | 0.14.1 | DTO validation |
 | multer | 1.4.5-lts.1 | File upload handling |

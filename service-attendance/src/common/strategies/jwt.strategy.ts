@@ -1,21 +1,24 @@
+import { JwtPayload } from "@modules/attendance/domain/entities/jwt-payload.interface";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
-import { ConfigService } from "@nestjs/config";
-import { JwtPayload } from "../../domain/entities/token.entity";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
-  constructor(private readonly configService: ConfigService) {
+  constructor(configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>("JWT_SECRET", "jwt-secret"),
+      secretOrKey:
+        configService.get<string>("jwt.secret") ??
+        configService.get<string>("JWT_SECRET") ??
+        "fallback-secret",
     });
   }
 
-  async validate(payload: JwtPayload): Promise<JwtPayload> {
-    if (!payload.userId || !payload.role) {
+  validate(payload: JwtPayload): JwtPayload {
+    if (!payload.userId) {
       throw new UnauthorizedException("Invalid token payload");
     }
     return payload;

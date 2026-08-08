@@ -36,26 +36,6 @@ services:
       - hr-network
 
   # ─────────────────────────────────────────
-  # Redis
-  # ─────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: hr-redis
-    restart: unless-stopped
-    command: redis-server --requirepass redispassword
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redispassword", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - hr-network
-
-  # ─────────────────────────────────────────
   # service-employee (port 3000)
   # ─────────────────────────────────────────
   service-employee:
@@ -81,12 +61,7 @@ services:
       JWT_ACCESS_EXPIRATION: 15m
       JWT_REFRESH_SECRET: change-this-refresh-secret-in-production
       JWT_REFRESH_EXPIRATION: 7d
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redispassword
-      REDIS_DB: 0
-      REDIS_KEY_PREFIX: "service-employee:"
-      CORS_ORIGIN: "http://localhost:5173"
+      CORS_ORIGIN: "http://localhost"
       COOKIE_SECRET: change-this-cookie-secret-in-production
       EMAIL_HOST: smtp.gmail.com
       EMAIL_PORT: 587
@@ -127,12 +102,7 @@ services:
       MYSQL_SYNCHRONIZE: "false"
       MYSQL_LOGGING: "false"
       JWT_SECRET: change-this-jwt-secret-in-production
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redispassword
-      REDIS_DB: 0
-      REDIS_KEY_PREFIX: "service-attendance:"
-      CORS_ORIGIN: "http://localhost:5173"
+      CORS_ORIGIN: "http://localhost"
       COOKIE_SECRET: change-this-cookie-secret-in-production
       UPLOAD_DIR: uploads/attendance
       MAX_FILE_SIZE: 5242880

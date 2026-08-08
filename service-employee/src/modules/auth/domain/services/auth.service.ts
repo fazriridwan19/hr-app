@@ -1,31 +1,30 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  Logger,
-  Inject,
-  NotFoundException,
-} from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { ConfigService } from "@nestjs/config";
-import * as bcrypt from "bcrypt";
-import { v4 as uuidv4 } from "uuid";
-import { RedisTokenService } from "../../infrastructure/cache/redis-token.service";
+import { LoginResponseDto } from "@modules/auth/application/dto/login-response.dto";
+import { LoginDto } from "@modules/auth/application/dto/login.dto";
 import {
   JwtPayload,
   RefreshTokenPayload,
-} from "../../domain/entities/token.entity";
-import { LoginResponseDto } from "@modules/auth/application/dto/login-response.dto";
-import { LoginDto } from "@modules/auth/application/dto/login.dto";
+} from "@modules/auth/domain/entities/token.entity";
+import { EmailService } from "@modules/auth/infrastructure/email/email.service";
+import { UpdatePasswordDto } from "@modules/employee/application/dto/update-password.dto";
 import {
   EMPLOYEE_REPOSITORY,
   IEmployeeRepository,
 } from "@modules/employee/domain/entities/employee.entity";
-import { EmailProducer } from "@modules/auth/infrastructure/queue/producers/email.producer";
-import { UpdatePasswordDto } from "@modules/employee/application/dto/update-password.dto";
 import {
-  USER_REPOSITORY,
   IUserRepository,
+  USER_REPOSITORY,
 } from "@modules/employee/domain/entities/user.entity";
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
 export class AuthService {
@@ -40,8 +39,7 @@ export class AuthService {
     private readonly employeeRepository: IEmployeeRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly redisTokenService: RedisTokenService,
-    private readonly emailProducer: EmailProducer,
+    private readonly emailService: EmailService,
   ) {}
 
   async login(
@@ -91,8 +89,6 @@ export class AuthService {
       expiresIn: this.configService.get<string>("JWT_REFRESH_EXPIRATION", "7d"),
     });
 
-    await this.redisTokenService.saveRefreshToken(user.id, jti, refreshToken);
-
     this.logger.log(`User ${user.email} logged in successfully`);
 
     const loginResponse: LoginResponseDto = {
@@ -132,24 +128,10 @@ export class AuthService {
       throw new UnauthorizedException("Invalid token type");
     }
 
-    const isValid = await this.redisTokenService.isRefreshTokenValid(
-      payload.userId,
-      payload.jti,
-    );
-    if (!isValid) {
-      throw new UnauthorizedException("Refresh token has been revoked");
-    }
-
     const user = await this.userRepository.findById(payload.userId);
     if (!user?.isActive) {
       throw new UnauthorizedException("User not found or inactive");
     }
-
-    // Rotate: delete old, issue new
-    await this.redisTokenService.deleteRefreshToken(
-      payload.userId,
-      payload.jti,
-    );
 
     const newJti = uuidv4();
     const newPayload: JwtPayload = {
@@ -174,12 +156,6 @@ export class AuthService {
       expiresIn: this.configService.get<string>("JWT_REFRESH_EXPIRATION", "7d"),
     });
 
-    await this.redisTokenService.saveRefreshToken(
-      payload.userId,
-      newJti,
-      newRefreshToken,
-    );
-
     this.logger.log(`Refreshed tokens for user ${payload.userId}`);
 
     return {
@@ -189,16 +165,6 @@ export class AuthService {
       oldJti: payload.jti,
       userId: payload.userId,
     };
-  }
-
-  async logout(userId: number, jti: string): Promise<void> {
-    await this.redisTokenService.deleteRefreshToken(userId, jti);
-    this.logger.log(`User ${userId} logged out, revoked jti: ${jti}`);
-  }
-
-  async logoutAll(userId: number): Promise<void> {
-    await this.redisTokenService.deleteAllRefreshTokens(userId);
-    this.logger.log(`All sessions revoked for user ${userId}`);
   }
 
   async requestReset(email: string): Promise<void> {
@@ -224,10 +190,7 @@ export class AuthService {
     );
     const resetPath = `${frontendUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
-    await this.emailProducer.addPasswordResetJob({
-      email: user.email,
-      resetUrl: resetPath,
-    });
+    this.emailService.sendPasswordReset(email, resetPath);
     this.logger.log(`Password reset requested for user ${user.email}`);
   }
 

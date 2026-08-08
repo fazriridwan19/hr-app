@@ -39,7 +39,7 @@ async function bootstrap(): Promise<void> {
   // Global prefix
   app.setGlobalPrefix("api");
 
-  // URI Versioning — endpoint jadi /api/v1/...
+  // URI Versioning
   app.enableVersioning({
     type: VersioningType.URI,
   });

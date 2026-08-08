@@ -16,10 +16,8 @@ Axios API client
         +--> service-attendance (attendance clock-in/out and monitoring)
 
 service-employee --> MySQL (db_employee)
-service-employee --> Redis
 
 service-attendance --> MySQL (db_attendance)
-service-attendance --> Redis
 ```
 
 ## Layer Structure
@@ -35,7 +33,7 @@ Service / Use case layer
 Repository / Data access layer
    |
    v
-Database / Redis / External service
+Database / External service
 ```
 
 ### service-employee

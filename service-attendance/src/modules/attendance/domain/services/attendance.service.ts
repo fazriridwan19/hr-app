@@ -12,7 +12,6 @@ import {
   AttendanceType,
   IAttendanceRepository,
 } from "@modules/attendance/domain/entities/attendance.entity";
-import { AttendanceCacheService } from "@modules/attendance/infrastructure/cache/attendance-cache.service";
 import { FileStorageService } from "@modules/attendance/infrastructure/storage/file-storage.service";
 import {
   BadRequestException,
@@ -31,7 +30,6 @@ export class AttendanceService {
   constructor(
     @Inject(ATTENDANCE_REPOSITORY)
     private readonly attendanceRepository: IAttendanceRepository,
-    private readonly cacheService: AttendanceCacheService,
     private readonly storageService: FileStorageService,
   ) {}
 
@@ -55,11 +53,6 @@ export class AttendanceService {
     notes?: string,
   ): Promise<AttendanceResponseDto> {
     const today = this.getTodayString();
-
-    const cached = await this.cacheService.getTodayStatus(employeeId);
-    if (cached?.clockIn) {
-      throw new ConflictException("You have already clocked in today");
-    }
 
     const existing =
       await this.attendanceRepository.findByEmployeeIdAndDateAndType(
@@ -88,13 +81,6 @@ export class AttendanceService {
       status: AttendanceStatus.COMPLETED,
     });
 
-    await this.cacheService.setTodayStatus(employeeId, {
-      clockIn: true,
-      clockOut: cached?.clockOut ?? false,
-      clockInId: attendance.id,
-      clockOutId: cached?.clockOutId,
-    });
-
     this.logger.log(
       `Clock-in initiated for employee ${employeeId} (${employeeCode})`,
     );
@@ -109,24 +95,15 @@ export class AttendanceService {
     notes?: string,
   ): Promise<AttendanceResponseDto> {
     const today = this.getTodayString();
-    const cached = await this.cacheService.getTodayStatus(employeeId);
-
-    if (cached?.clockOut) {
-      throw new ConflictException("You have already clocked out today");
+    const clockInRecord =
+      await this.attendanceRepository.findByEmployeeIdAndDateAndType(
+        employeeId,
+        today,
+        AttendanceType.CLOCK_IN,
+      );
+    if (!clockInRecord) {
+      throw new BadRequestException("You must clock in before clocking out");
     }
-
-    if (!cached?.clockIn) {
-      const clockInRecord =
-        await this.attendanceRepository.findByEmployeeIdAndDateAndType(
-          employeeId,
-          today,
-          AttendanceType.CLOCK_IN,
-        );
-      if (!clockInRecord) {
-        throw new BadRequestException("You must clock in before clocking out");
-      }
-    }
-
     const existing =
       await this.attendanceRepository.findByEmployeeIdAndDateAndType(
         employeeId,
@@ -152,13 +129,6 @@ export class AttendanceService {
       clockDate: today as unknown as Date,
       clockTime: this.getCurrentTimeString(),
       status: AttendanceStatus.COMPLETED,
-    });
-
-    await this.cacheService.setTodayStatus(employeeId, {
-      clockIn: cached?.clockIn ?? true,
-      clockOut: true,
-      clockInId: cached?.clockInId,
-      clockOutId: attendance.id,
     });
 
     this.logger.log(

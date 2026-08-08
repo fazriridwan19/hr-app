@@ -1,8 +1,4 @@
-import {
-  EMAIL_QUEUE,
-  EmailProducer,
-} from "@modules/auth/infrastructure/queue/producers/email.producer";
-import { BullModule } from "@nestjs/bullmq";
+import { EmailService } from "@modules/auth/infrastructure/email/email.service";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
@@ -10,10 +6,6 @@ import { PassportModule } from "@nestjs/passport";
 import { EmployeeModule } from "../employee/employee.module";
 import { AuthController } from "./application/controllers/auth.controller";
 import { AuthService } from "./domain/services/auth.service";
-import { RedisTokenService } from "./infrastructure/cache/redis-token.service";
-import { EmailService } from "./infrastructure/email/email.service";
-import { EmailConsumer } from "./infrastructure/queue/consumers/email.consumer";
-import { JwtStrategy } from "./infrastructure/strategies/jwt.strategy";
 
 @Module({
   imports: [
@@ -28,19 +20,12 @@ import { JwtStrategy } from "./infrastructure/strategies/jwt.strategy";
         },
       }),
     }),
-    BullModule.registerQueue({
-      name: EMAIL_QUEUE,
-    }),
     EmployeeModule,
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
     EmailService,
-    JwtStrategy,
-    RedisTokenService,
-    EmailProducer,
-    EmailConsumer,
   ],
   exports: [AuthService, JwtModule, PassportModule],
 })

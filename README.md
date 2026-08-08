@@ -7,7 +7,6 @@ HR System is an internal employee management and attendance platform composed of
 - Employee service: NestJS for authentication, employee management, user accounts, roles, and access control
 - Attendance service: NestJS for clock-in / clock-out, photo uploads, and attendance monitoring
 - Database: MySQL
-- Cache / queue: Redis + BullMQ
 - Deployment: Docker Compose
 
 ## Full documentation
@@ -40,7 +39,7 @@ Before running the project, make sure your machine has:
 - Node.js 18+
 - npm
 - Docker Desktop / Docker Engine (optional for Docker Compose mode)
-- MySQL and Redis (if running manually without Docker)
+- MySQL (if running manually without Docker)
 
 ## Running the project locally
 
@@ -92,14 +91,14 @@ Notes:
 ### Option 2: Run manually without Docker
 This is useful when you want to debug the application directly in your local environment.
 
-#### 1) Prepare MySQL and Redis
+#### 1) Prepare MySQL
 Use Docker only for the infrastructure dependencies:
 
 ```bash
-docker compose up mysql redis -d
+docker compose up mysql -d
 ```
 
-If you already have MySQL and Redis running locally, you can skip this step.
+If you already have MySQL running locally, you can skip this step.
 
 #### 2) Set up the employee service
 ```bash
