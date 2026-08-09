@@ -1,196 +1,345 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { AuthService } from './auth.service';
-import { USER_REPOSITORY } from '../../../user/domain/repositories/user.repository.interface';
-import { EMPLOYEE_REPOSITORY } from '../../../employee/domain/repositories/employee.repository.interface';
-import { RedisTokenService } from '../../infrastructure/cache/redis-token.service';
-import { User, UserRole } from '../../../user/domain/entities/user.entity';
+import {
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
+import { AuthService } from "./auth.service";
+import { EmailService } from "@modules/auth/infrastructure/email/email.service";
+import { IEmployeeRepository } from "@modules/employee/domain/entities/employee.entity";
+import { IUserRepository } from "@modules/employee/domain/entities/user.entity";
+import { LoginDto } from "@modules/auth/application/dto/login.dto";
+import { UpdatePasswordDto } from "@modules/employee/application/dto/update-password.dto";
 
-describe('AuthService', () => {
+jest.mock("uuid", () => ({
+  v4: jest.fn(),
+}));
+
+describe("AuthService", () => {
   let service: AuthService;
-  let userRepository: jest.Mocked<any>;
-  let employeeRepository: jest.Mocked<any>;
-  let jwtService: jest.Mocked<JwtService>;
-  let configService: jest.Mocked<ConfigService>;
-  let redisTokenService: jest.Mocked<RedisTokenService>;
+  let userRepository: IUserRepository;
+  let employeeRepository: IEmployeeRepository;
+  let jwtService: JwtService;
+  let configService: ConfigService;
+  let emailService: EmailService;
 
-  const mockUser: User = new User({
+  const mockUser = {
     id: 1,
-    email: 'admin@example.com',
-    password: '$2b$12$hashedpassword',
-    role: UserRole.ADMIN,
-    employeeId: null,
+    email: "john@example.com",
+    password: "hashed-password",
     isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    employeeId: 10,
+    role: "EMPLOYEE",
+  };
+
+  beforeEach(() => {
+    userRepository = {
+      findByEmail: jest.fn(),
+      findById: jest.fn(),
+      updatePassword: jest.fn(),
+    } as unknown as IUserRepository;
+
+    employeeRepository = {
+      findById: jest.fn(),
+    } as unknown as IEmployeeRepository;
+
+    jwtService = {
+      sign: jest.fn(),
+      verify: jest.fn(),
+    } as unknown as JwtService;
+
+    configService = {
+      get: jest.fn((_key: string, defaultValue?: unknown) => defaultValue),
+    } as unknown as ConfigService;
+
+    emailService = {
+      sendPasswordReset: jest.fn(),
+    } as unknown as EmailService;
+
+    service = new AuthService(
+      userRepository,
+      employeeRepository,
+      jwtService,
+      configService,
+      emailService,
+    );
+
+    jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+    (uuidv4 as jest.Mock).mockReturnValue("generated-uuid");
+    jest
+      .spyOn(jwtService, "sign")
+      .mockReturnValueOnce("access-token")
+      .mockReturnValueOnce("refresh-token");
   });
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuthService,
-        {
-          provide: USER_REPOSITORY,
-          useValue: {
-            findByEmail: jest.fn(),
-            findById: jest.fn(),
-          },
-        },
-        {
-          provide: EMPLOYEE_REPOSITORY,
-          useValue: {
-            findById: jest.fn(),
-          },
-        },
-        {
-          provide: JwtService,
-          useValue: {
-            sign: jest.fn(),
-            verify: jest.fn(),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn((key: string, defaultValue?: any) => {
-              const config: Record<string, any> = {
-                'jwt.secret': 'test-secret',
-                'jwt.accessExpiration': '15m',
-                'jwt.refreshSecret': 'test-refresh-secret',
-                'jwt.refreshExpiration': '7d',
-              };
-              return config[key] ?? defaultValue;
-            }),
-          },
-        },
-        {
-          provide: RedisTokenService,
-          useValue: {
-            saveRefreshToken: jest.fn(),
-            getRefreshToken: jest.fn(),
-            deleteRefreshToken: jest.fn(),
-            deleteAllRefreshTokens: jest.fn(),
-            isRefreshTokenValid: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<AuthService>(AuthService);
-    userRepository = module.get(USER_REPOSITORY);
-    employeeRepository = module.get(EMPLOYEE_REPOSITORY);
-    jwtService = module.get(JwtService);
-    configService = module.get(ConfigService);
-    redisTokenService = module.get(RedisTokenService);
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+  describe("login", () => {
+    const loginDto: LoginDto = {
+      email: "john@example.com",
+      password: "plain-password",
+    } as LoginDto;
 
-  describe('login', () => {
-    it('should login successfully with valid credentials', async () => {
-      const loginDto = { email: 'admin@example.com', password: 'password123' };
-      const hashedPassword = await bcrypt.hash('password123', 12);
-      const userWithHash = new User({ ...mockUser, password: hashedPassword });
+    it("should throw UnauthorizedException when user is not found", async () => {
+      jest.spyOn(userRepository, "findByEmail").mockResolvedValue(null);
 
-      userRepository.findByEmail.mockResolvedValue(userWithHash);
-      jwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
-      redisTokenService.saveRefreshToken.mockResolvedValue(undefined);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        "Invalid email or password",
+      );
+    });
+
+    it("should throw UnauthorizedException when the account is deactivated", async () => {
+      jest
+        .spyOn(userRepository, "findByEmail")
+        .mockResolvedValue({ ...mockUser, isActive: false } as any);
+
+      await expect(service.login(loginDto)).rejects.toThrow(
+        "Your account has been deactivated",
+      );
+    });
+
+    it("should throw UnauthorizedException when the password is invalid", async () => {
+      jest
+        .spyOn(userRepository, "findByEmail")
+        .mockResolvedValue(mockUser as any);
+      jest.spyOn(bcrypt, "compare").mockResolvedValue(false as never);
+
+      await expect(service.login(loginDto)).rejects.toThrow(
+        "Invalid email or password",
+      );
+    });
+
+    it("should use the employee's name when employeeId exists and employee is found", async () => {
+      jest
+        .spyOn(userRepository, "findByEmail")
+        .mockResolvedValue(mockUser as any);
+      jest.spyOn(bcrypt, "compare").mockResolvedValue(true as never);
+      jest
+        .spyOn(employeeRepository, "findById")
+        .mockResolvedValue({ id: 10, name: "Jane Employee" } as any);
 
       const result = await service.login(loginDto);
 
-      expect(result.loginResponse.accessToken).toBe('access-token');
-      expect(result.loginResponse.tokenType).toBe('Bearer');
-      expect(result.loginResponse.expiresIn).toBe(900);
-      expect(result.refreshToken).toBe('refresh-token');
-      expect(redisTokenService.saveRefreshToken).toHaveBeenCalled();
+      expect(employeeRepository.findById).toHaveBeenCalledWith(10);
+      expect(result.loginResponse.user.name).toBe("Jane Employee");
+      expect(result.loginResponse.accessToken).toBe("access-token");
+      expect(result.refreshToken).toBe("refresh-token");
     });
 
-    it('should throw UnauthorizedException when user not found', async () => {
-      userRepository.findByEmail.mockResolvedValue(null);
+    it("should fall back to the email prefix when employeeId exists but employee is not found", async () => {
+      jest
+        .spyOn(userRepository, "findByEmail")
+        .mockResolvedValue(mockUser as any);
+      jest.spyOn(bcrypt, "compare").mockResolvedValue(true as never);
+      jest.spyOn(employeeRepository, "findById").mockResolvedValue(null);
 
-      await expect(
-        service.login({ email: 'notfound@example.com', password: 'pass' }),
-      ).rejects.toThrow(UnauthorizedException);
+      const result = await service.login(loginDto);
+
+      expect(result.loginResponse.user.name).toBe("john");
     });
 
-    it('should throw UnauthorizedException when user is inactive', async () => {
-      const inactiveUser = new User({ ...mockUser, isActive: false });
-      userRepository.findByEmail.mockResolvedValue(inactiveUser);
+    it("should fall back to the email prefix when employeeId is not set", async () => {
+      jest
+        .spyOn(userRepository, "findByEmail")
+        .mockResolvedValue({ ...mockUser, employeeId: undefined } as any);
+      jest.spyOn(bcrypt, "compare").mockResolvedValue(true as never);
 
-      await expect(
-        service.login({ email: 'admin@example.com', password: 'password123' }),
-      ).rejects.toThrow(UnauthorizedException);
-    });
+      const result = await service.login(loginDto);
 
-    it('should throw UnauthorizedException when password is invalid', async () => {
-      userRepository.findByEmail.mockResolvedValue(mockUser);
-
-      await expect(
-        service.login({ email: 'admin@example.com', password: 'wrongpassword' }),
-      ).rejects.toThrow(UnauthorizedException);
+      expect(employeeRepository.findById).not.toHaveBeenCalled();
+      expect(result.loginResponse.user.name).toBe("john");
     });
   });
 
-  describe('refresh', () => {
-    it('should refresh tokens successfully', async () => {
-      const mockPayload = {
-        userId: 1,
-        employeeId: null,
-        role: 'ADMIN',
-        name: 'Admin',
-        jti: 'old-jti',
-        type: 'refresh',
-      };
+  describe("refresh", () => {
+    it("should throw UnauthorizedException when the token cannot be verified", async () => {
+      jest.spyOn(jwtService, "verify").mockImplementation(() => {
+        throw new Error("jwt malformed");
+      });
 
-      jwtService.verify = jest.fn().mockReturnValue(mockPayload);
-      redisTokenService.isRefreshTokenValid.mockResolvedValue(true);
-      userRepository.findById.mockResolvedValue(mockUser);
-      redisTokenService.deleteRefreshToken.mockResolvedValue(undefined);
-      jwtService.sign
-        .mockReturnValueOnce('new-access-token')
-        .mockReturnValueOnce('new-refresh-token');
-      redisTokenService.saveRefreshToken.mockResolvedValue(undefined);
-
-      const result = await service.refresh('valid-refresh-token');
-
-      expect(result.accessToken).toBe('new-access-token');
-      expect(result.newRefreshToken).toBe('new-refresh-token');
-      expect(redisTokenService.deleteRefreshToken).toHaveBeenCalledWith(1, 'old-jti');
+      await expect(service.refresh("bad-token")).rejects.toThrow(
+        "Invalid or expired refresh token",
+      );
     });
 
-    it('should throw UnauthorizedException when refresh token is revoked', async () => {
-      const mockPayload = {
+    it("should throw UnauthorizedException when the token type is not 'refresh'", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
         userId: 1,
-        employeeId: null,
-        role: 'ADMIN',
-        name: 'Admin',
-        jti: 'revoked-jti',
-        type: 'refresh',
-      };
+        type: "access",
+        jti: "jti-1",
+      } as any);
 
-      jwtService.verify = jest.fn().mockReturnValue(mockPayload);
-      redisTokenService.isRefreshTokenValid.mockResolvedValue(false);
+      await expect(service.refresh("token")).rejects.toThrow(
+        "Invalid token type",
+      );
+    });
 
-      await expect(service.refresh('revoked-token')).rejects.toThrow(
-        UnauthorizedException,
+    it("should throw UnauthorizedException when the user is not found", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
+        userId: 1,
+        type: "refresh",
+        jti: "jti-1",
+      } as any);
+      jest.spyOn(userRepository, "findById").mockResolvedValue(null);
+
+      await expect(service.refresh("token")).rejects.toThrow(
+        "User not found or inactive",
+      );
+    });
+
+    it("should throw UnauthorizedException when the user is inactive", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
+        userId: 1,
+        type: "refresh",
+        jti: "jti-1",
+      } as any);
+      jest
+        .spyOn(userRepository, "findById")
+        .mockResolvedValue({ ...mockUser, isActive: false } as any);
+
+      await expect(service.refresh("token")).rejects.toThrow(
+        "User not found or inactive",
+      );
+    });
+
+    it("should issue new tokens on success", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
+        userId: 1,
+        employeeId: 10,
+        role: "EMPLOYEE",
+        name: "John Doe",
+        type: "refresh",
+        jti: "old-jti",
+      } as any);
+      jest.spyOn(userRepository, "findById").mockResolvedValue(mockUser as any);
+
+      const result = await service.refresh("valid-token");
+
+      expect(result).toEqual({
+        accessToken: "access-token",
+        newRefreshToken: "refresh-token",
+        newJti: "generated-uuid",
+        oldJti: "old-jti",
+        userId: 1,
+      });
+    });
+  });
+
+  describe("requestReset", () => {
+    it("should do nothing and log a warning when the user is not found", async () => {
+      jest.spyOn(userRepository, "findByEmail").mockResolvedValue(null);
+
+      await service.requestReset("missing@example.com");
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      expect(emailService.sendPasswordReset).not.toHaveBeenCalled();
+    });
+
+    it("should do nothing and log a warning when the user is inactive", async () => {
+      jest
+        .spyOn(userRepository, "findByEmail")
+        .mockResolvedValue({ ...mockUser, isActive: false } as any);
+
+      await service.requestReset(mockUser.email);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      expect(emailService.sendPasswordReset).not.toHaveBeenCalled();
+    });
+
+    it("should generate a reset token and send the reset email", async () => {
+      jest
+        .spyOn(userRepository, "findByEmail")
+        .mockResolvedValue(mockUser as any);
+      jest.spyOn(jwtService, "sign").mockReset().mockReturnValue("reset-jwt");
+
+      await service.requestReset(mockUser.email);
+
+      expect(emailService.sendPasswordReset).toHaveBeenCalledWith(
+        mockUser.email,
+        expect.stringContaining("http://localhost:5173/reset-password?token="),
       );
     });
   });
 
-  describe('logout', () => {
-    it('should logout successfully', async () => {
-      redisTokenService.deleteRefreshToken.mockResolvedValue(undefined);
+  describe("resetPassword", () => {
+    const dto: UpdatePasswordDto = {
+      newPassword: "newSecret123",
+    } as UpdatePasswordDto;
 
-      await service.logout(1, 'some-jti');
+    it("should throw NotFoundException when the token cannot be verified", async () => {
+      jest.spyOn(jwtService, "verify").mockImplementation(() => {
+        throw new Error("jwt malformed");
+      });
 
-      expect(redisTokenService.deleteRefreshToken).toHaveBeenCalledWith(1, 'some-jti');
+      await expect(service.resetPassword("bad-token", dto)).rejects.toThrow(
+        "Invalid or expired password reset token",
+      );
+    });
+
+    it("should throw NotFoundException when the token purpose is wrong", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
+        userId: 1,
+        email: mockUser.email,
+        purpose: "something-else",
+      } as any);
+
+      await expect(service.resetPassword("token", dto)).rejects.toThrow(
+        "Invalid password reset token",
+      );
+    });
+
+    it("should throw NotFoundException when the user is not found", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
+        userId: 1,
+        email: mockUser.email,
+        purpose: "password-reset",
+      } as any);
+      jest.spyOn(userRepository, "findById").mockResolvedValue(null);
+
+      await expect(service.resetPassword("token", dto)).rejects.toThrow(
+        "User not found or inactive",
+      );
+    });
+
+    it("should throw NotFoundException when the user is inactive", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
+        userId: 1,
+        email: mockUser.email,
+        purpose: "password-reset",
+      } as any);
+      jest
+        .spyOn(userRepository, "findById")
+        .mockResolvedValue({ ...mockUser, isActive: false } as any);
+
+      await expect(service.resetPassword("token", dto)).rejects.toThrow(
+        "User not found or inactive",
+      );
+    });
+
+    it("should hash the new password and update the user on success", async () => {
+      jest.spyOn(jwtService, "verify").mockReturnValue({
+        userId: 1,
+        email: mockUser.email,
+        purpose: "password-reset",
+      } as any);
+      jest.spyOn(userRepository, "findById").mockResolvedValue(mockUser as any);
+      jest
+        .spyOn(bcrypt, "hash")
+        .mockResolvedValue("hashed-new-password" as never);
+
+      await service.resetPassword("token", dto);
+
+      expect(bcrypt.hash).toHaveBeenCalledWith("newSecret123", 12);
+      expect(userRepository.updatePassword).toHaveBeenCalledWith(
+        mockUser.id,
+        "hashed-new-password",
+      );
     });
   });
 });
