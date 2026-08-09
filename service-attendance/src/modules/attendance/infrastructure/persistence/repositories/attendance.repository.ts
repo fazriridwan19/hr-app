@@ -129,6 +129,13 @@ export class AttendanceRepository implements IAttendanceRepository {
         .take(5)
         .getMany();
 
+      const clockTime = new Date().toLocaleTimeString("en-GB", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
       await manager.getRepository(AttendanceEntity).insert(
         attendances.map((attendance) => ({
           employeeId: attendance.employeeId,
@@ -136,7 +143,7 @@ export class AttendanceRepository implements IAttendanceRepository {
           employeeName: attendance.employeeName,
           type: AttendanceType.CLOCK_OUT,
           clockDate: attendance.clockDate,
-          clockTime: new Date().toISOString().split("T")[1].split(".")[0],
+          clockTime,
           createdAt: new Date(),
           updatedAt: new Date(),
           status: AttendanceStatus.COMPLETED,
