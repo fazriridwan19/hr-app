@@ -22,6 +22,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
 
 @Injectable()
 export class AttendanceService {
@@ -200,5 +201,31 @@ export class AttendanceService {
     }
 
     return AttendanceResponseDto.fromDomain(attendance);
+  }
+
+  @Cron(CronExpression.EVERY_5_SECONDS)
+  async handleAutoClockOut(): Promise<void> {
+    const timestamp = new Date().toISOString();
+
+    this.logger.log(`Running auto clock out scheduler at ${timestamp}`);
+
+    try {
+      const processedAttendances =
+        await this.attendanceRepository.insertAutoClockOut();
+
+      if (processedAttendances.length === 0) {
+        this.logger.log("No pending clock-out records found.");
+        return;
+      }
+
+      this.logger.log(
+        `Auto clock out scheduler completed | Success: ${processedAttendances.length}, Failed: 0`,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Auto clock out scheduler failed: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+    }
   }
 }

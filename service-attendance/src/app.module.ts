@@ -9,6 +9,7 @@ import { DatabaseModule } from "@modules/shared/database.module";
 import { LoggingModule } from "@modules/shared/logging.module";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from "@nestjs/serve-static";
 import * as path from "node:path";
 
@@ -33,6 +34,8 @@ import * as path from "node:path";
 
     // Database
     DatabaseModule,
+
+    ScheduleModule.forRoot(),
 
     // Feature modules
     AttendanceModule,

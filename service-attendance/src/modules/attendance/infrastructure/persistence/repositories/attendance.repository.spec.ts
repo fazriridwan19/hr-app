@@ -1,4 +1,4 @@
-import { Repository } from "typeorm";
+import { DataSource, EntityManager, Repository } from "typeorm";
 import { AttendanceRepository } from "./attendance.repository";
 import { AttendanceEntity } from "../entities/attendance.entity";
 import {
@@ -10,6 +10,7 @@ import {
 describe("AttendanceRepository", () => {
   let repository: AttendanceRepository;
   let repo: Repository<AttendanceEntity>;
+  let dataSource: DataSource;
   let mockQueryBuilder: {
     where: jest.Mock;
     andWhere: jest.Mock;
@@ -57,7 +58,11 @@ describe("AttendanceRepository", () => {
       count: jest.fn(),
     } as unknown as Repository<AttendanceEntity>;
 
-    repository = new AttendanceRepository(repo);
+    dataSource = {
+      transaction: jest.fn(),
+    } as unknown as DataSource;
+
+    repository = new AttendanceRepository(repo, dataSource);
   });
 
   afterEach(() => {
@@ -275,6 +280,101 @@ describe("AttendanceRepository", () => {
         where: { employeeId: 10, clockDate: "2026-08-09" },
       });
       expect(result).toBe(3);
+    });
+  });
+
+  describe("insertAutoClockOut", () => {
+    let mockManagerQueryBuilder: {
+      setLock: jest.Mock;
+      setOnLocked: jest.Mock;
+      leftJoin: jest.Mock;
+      where: jest.Mock;
+      andWhere: jest.Mock;
+      take: jest.Mock;
+      getMany: jest.Mock;
+    };
+    let mockInsert: jest.Mock;
+    let manager: EntityManager;
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(new Date("2026-08-09T10:00:00.000Z"));
+
+      mockManagerQueryBuilder = {
+        setLock: jest.fn().mockReturnThis(),
+        setOnLocked: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn(),
+      };
+
+      mockInsert = jest.fn();
+
+      manager = {
+        createQueryBuilder: jest.fn().mockReturnValue(mockManagerQueryBuilder),
+        getRepository: jest.fn().mockReturnValue({ insert: mockInsert }),
+      } as unknown as EntityManager;
+
+      jest
+        .spyOn(dataSource, "transaction")
+        .mockImplementation(async (cb: any) => cb(manager));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("should insert nothing and return an empty array when there is nothing to auto clock-out", async () => {
+      mockManagerQueryBuilder.getMany.mockResolvedValue([]);
+
+      const result = await repository.insertAutoClockOut();
+
+      expect(manager.createQueryBuilder).toHaveBeenCalledWith(
+        AttendanceEntity,
+        "attendance",
+      );
+      expect(mockManagerQueryBuilder.setLock).toHaveBeenCalledWith(
+        "pessimistic_write",
+      );
+      expect(mockManagerQueryBuilder.setOnLocked).toHaveBeenCalledWith(
+        "skip_locked",
+      );
+      expect(mockManagerQueryBuilder.where).toHaveBeenCalledWith(
+        "attendance.type = :type",
+        { type: AttendanceType.CLOCK_IN },
+      );
+      expect(mockManagerQueryBuilder.take).toHaveBeenCalledWith(5);
+      expect(mockInsert).toHaveBeenCalledWith([]);
+      expect(result).toEqual([]);
+    });
+
+    it("should insert an auto clock-out record for each pending attendance and return the domain results", async () => {
+      const pendingAttendance = {
+        employeeId: 10,
+        employeeCode: "EMP001",
+        employeeName: "John Doe",
+        clockDate: "2026-08-08",
+        toDomain: jest.fn().mockReturnValue(mockDomainAttendance),
+      };
+      mockManagerQueryBuilder.getMany.mockResolvedValue([pendingAttendance]);
+
+      const result = await repository.insertAutoClockOut();
+
+      expect(mockInsert).toHaveBeenCalledWith([
+        expect.objectContaining({
+          employeeId: 10,
+          employeeCode: "EMP001",
+          employeeName: "John Doe",
+          type: AttendanceType.CLOCK_OUT,
+          clockDate: "2026-08-08",
+          clockTime: "10:00:00",
+          status: AttendanceStatus.COMPLETED,
+          notes: "Clocked out by system",
+        }),
+      ]);
+      expect(pendingAttendance.toDomain).toHaveBeenCalled();
+      expect(result).toEqual([mockDomainAttendance]);
     });
   });
 });

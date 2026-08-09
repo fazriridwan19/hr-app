@@ -78,4 +78,6 @@ export interface IAttendanceRepository {
     employeeId: number,
     clockDate: string,
   ): Promise<number>;
+
+  insertAutoClockOut(): Promise<Attendance[]>;
 }
