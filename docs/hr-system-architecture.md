@@ -1,7 +1,7 @@
 # HR System - Architecture & Code Flow
 
 ## Architecture Pattern
-This project follows a modular monolith style across two separate NestJS services, with a React frontend consuming both APIs. Each backend service maintains its own domain boundaries and persistence layer, rather than sharing one monolithic database.
+This project follows a microservices style across two separate NestJS services, with a React frontend consuming both APIs. Each backend service maintains its own domain boundaries and persistence layer, rather than sharing one monolithic database.
 
 The practical architecture is:
 

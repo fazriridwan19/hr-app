@@ -193,7 +193,6 @@ export class AttendanceService {
       throw new NotFoundException(`Attendance record #${id} not found`);
     }
 
-    // ADMIN can view all; USER can only view their own
     if (role !== "ADMIN" && attendance.employeeId !== requestingEmployeeId) {
       throw new ForbiddenException(
         "You do not have permission to view this record",

@@ -39,6 +39,9 @@ The application supports employee CRUD, user account creation, role and account 
 hr-system/
 ├── docker-compose.yml
 ├── docs/
+├── docker/
+│   └── mysql/
+│       └── init.sql
 ├── frontend/
 │   ├── src/
 │   ├── package.json
@@ -49,12 +52,12 @@ hr-system/
 │   ├── package.json
 │   ├── jest.config.js
 │   └── Dockerfile
-├── service-attendance/
-│   ├── src/
-│   ├── package.json
-│   ├── jest.config.js
-│   └── Dockerfile
-└── .ai/
+└── service-attendance/
+    ├── src/
+    ├── package.json
+    ├── jest.config.js
+    └── Dockerfile
+
 ```
 
 ## Main Functional Areas

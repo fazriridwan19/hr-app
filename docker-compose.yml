@@ -19,16 +19,7 @@ services:
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-psecret",
-        ]
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -52,8 +43,8 @@ services:
       APP_NAME: service-employee
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: root
+      MYSQL_USERNAME: hruser
+      MYSQL_PASSWORD: hrpassword
       MYSQL_DATABASE: db_employee
       MYSQL_SYNCHRONIZE: "false"
       MYSQL_LOGGING: "false"
@@ -71,8 +62,6 @@ services:
       EMAIL_FROM: no-reply@example.com
     depends_on:
       mysql:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - hr-network
@@ -96,8 +85,8 @@ services:
       APP_NAME: service-attendance
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: root
+      MYSQL_USERNAME: hruser
+      MYSQL_PASSWORD: hrpassword
       MYSQL_DATABASE: db_attendance
       MYSQL_SYNCHRONIZE: "false"
       MYSQL_LOGGING: "false"
@@ -108,8 +97,6 @@ services:
       MAX_FILE_SIZE: 5242880
     depends_on:
       mysql:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - hr-network
@@ -136,7 +123,6 @@ services:
 
 volumes:
   mysql_data:
-  redis_data:
   employee_logs:
   attendance_uploads:
   attendance_logs:

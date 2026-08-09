@@ -149,14 +149,12 @@ These are the default environment setups used by the project:
 - Database: MySQL (`db_employee`)
 - Port: 3000
 - JWT: enabled
-- Redis: enabled
 - Refresh token cookie: enabled
 
 ### Attendance Service
 - Database: MySQL (`db_attendance`)
 - Port: 3001
 - JWT: enabled
-- Redis: enabled
 - Upload directory: `uploads/attendance`
 
 ## Troubleshooting
@@ -167,7 +165,7 @@ Check whether ports 3000, 3001, 5173, or 80 are already occupied by other servic
 ### MySQL / Redis not ready
 Make sure the database and Redis are running before starting the backend services:
 ```bash
-docker compose up mysql redis -d
+docker compose up mysql -d
 ```
 
 ### Login fails / token expired

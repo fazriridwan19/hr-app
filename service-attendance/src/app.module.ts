@@ -14,14 +14,14 @@ import * as path from "node:path";
 
 @Module({
   imports: [
-    // Config — load semua config termasuk appConfig
+    // Config
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, databaseConfig, redisConfig, jwtConfig],
       envFilePath: ".env",
     }),
 
-    // Static files — serve uploaded photos
+    // Static files
     ServeStaticModule.forRoot({
       rootPath: path.join(process.cwd(), "uploads"),
       serveRoot: "/uploads",
